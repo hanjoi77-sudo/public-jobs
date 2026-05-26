@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 
-const API_URL = "http://localhost:4000/api/jobs";
+const API_URL = "https://job-backend-brjv.onrender.com/api/jobs";
 
 // ── Utilities ──────────────────────────────────────────────────────────────
 function getDday(deadline) {
