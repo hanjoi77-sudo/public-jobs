@@ -16,7 +16,6 @@ function useWindowWidth() {
 
 export default function App() {
   const width = useWindowWidth();
-  const isMobile = width < 768;
   const isTablet = width >= 768 && width < 1024;
   const isPC = width >= 1024;
 
