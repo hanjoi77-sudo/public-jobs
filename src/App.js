@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { JobCard } from "./components/JobCard";
 import { DetailScreen } from "./components/DetailScreen";
-import { fetchJobs } from "./api/jobs";
+import { fetchJobs } from "./api/Jobs";
 import { getDday } from "./utils/helpers";
 
 function useWindowWidth() {
