@@ -9,8 +9,8 @@ function KakaoMap({ address }) {
     if (!address || !window.kakao) return;
 
     window.kakao.maps.load(() => {
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      geocoder.addressSearch(address, (result, status) => {
+      const ps = new window.kakao.maps.services.Places();
+      ps.keywordSearch(address, (result, status) => {
         if (status === window.kakao.maps.services.Status.OK && mapRef.current) {
           const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
           const map = new window.kakao.maps.Map(mapRef.current, {
@@ -22,7 +22,6 @@ function KakaoMap({ address }) {
       });
     });
   }, [address]);
-
   return (
     <div>
       <div ref={mapRef} style={{
