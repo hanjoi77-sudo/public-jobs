@@ -1,18 +1,8 @@
-app.get("/api/jobs", async (req, res) => {
-  try {
-    console.log("채용공고 수집 시작...");
-    const jobs = await fetchAllJobs();
-    const deduplicated = deduplicateJobs(jobs);
-    deduplicated.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
-    console.log(`총 ${deduplicated.length}개 공고 수집 완료`);
-    res.json({
-      success: true,
-      count: deduplicated.length,
-      data: deduplicated,
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error("서버 오류:", error.message);
-    res.status(500).json({ success: false, message: "서버 오류" });
-  }
-});
+const API_URL = "https://job-backend-brjv.onrender.com/api/jobs";
+
+export async function fetchJobs() {
+  const res = await fetch(API_URL);
+  const data = await res.json();
+  if (!data.success) throw new Error("데이터를 불러오지 못했습니다.");
+  return data;
+}
