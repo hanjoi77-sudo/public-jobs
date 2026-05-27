@@ -63,8 +63,12 @@ export default function App() {
   const filtered = useMemo(() => {
     let list = jobs.filter(j => getDday(j.deadline) >= 0);
     if (showFavoritesOnly) list = list.filter(j => favorites.includes(j.id));
-    if (filterCareer === "신입") list = list.filter(j => j.careerType === "신입" && !j.isConversionIntern);
-    else if (filterCareer === "경력") list = list.filter(j => j.careerType === "경력");
+    if (filterCareer === "신입") list = list.filter(j => 
+      (j.careerType === "신입" || j.careerType === "신입+경력") && !j.isConversionIntern
+    );
+    else if (filterCareer === "경력") list = list.filter(j => 
+      j.careerType === "경력" || j.careerType === "신입+경력"
+    );
     else if (filterCareer === "채용형 인턴") list = list.filter(j => j.isConversionIntern);
     if (filterRegion !== "전체") list = list.filter(j => j.workLocation.some(l => l.includes(filterRegion)));
     if (filterExtra === "urgent") list = list.filter(j => { const d = getDday(j.deadline); return d >= 0 && d <= 7; });
