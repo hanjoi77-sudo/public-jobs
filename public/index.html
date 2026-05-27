@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <!-- public/index.html <head> 안에 -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#000000" />
     <meta
@@ -28,7 +29,9 @@
     <meta name="description" content="서울·경기·인천 공공기관 문과직 채용공고 모아보기" />
     <meta property="og:title" content="수도권 공공기관 문과직 채용" />
     <meta property="og:description" content="서울·경기·인천 공공기관 문과직 채용공고 모아보기" />
-    <meta property="og:image" content="%PUBLIC_URL%/thumbnail.png" />
+    <meta property="og:image" content="https://public-jobs.vercel.app/thumbnail.png" />  <!-- 이것만 변경 -->
+    <meta property="og:url" content="https://public-jobs.vercel.app/" />  <!-- 추가 -->
+    <meta property="og:type" content="website" />  <!-- 추가 -->
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=6dc25fd149bee91c937cf7e3681b7dcb&libraries=services"></script>
   </head>
   <body>
