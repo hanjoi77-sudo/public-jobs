@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Badge, LocationBadge } from "./Badge";
-import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/helpers";
+import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/Helpers";
 
 function KakaoMap({ address }) {
   const mapRef = useRef(null);
