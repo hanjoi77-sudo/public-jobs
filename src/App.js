@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { JobCard } from "./components/JobCard";
 import { DetailScreen } from "./components/DetailScreen";
 import { fetchJobs } from "./api/Jobs";
-import { getDday } from "./utils/helpers";
+import { getDday } from "./utils/Helpers";
 
 function useWindowWidth() {
   const [width, setWidth] = useState(window.innerWidth);
