@@ -1,6 +1,64 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Badge, LocationBadge } from "./Badge";
-import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/Helpers";
+import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/helpers";
+
+function KakaoMap({ address }) {
+  const mapRef = useRef(null);
+  const [mapError, setMapError] = useState(false);
+
+  useEffect(() => {
+    if (!address || !window.kakao) {
+      setMapError(true);
+      return;
+    }
+
+    const { kakao } = window;
+
+    kakao.maps.load(() => {
+      const geocoder = new kakao.maps.services.Geocoder();
+
+      geocoder.addressSearch(address, (result, status) => {
+        if (status === kakao.maps.services.Status.OK) {
+          const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+
+          const map = new kakao.maps.Map(mapRef.current, {
+            center: coords,
+            level: 4,
+          });
+
+          new kakao.maps.Marker({
+            map,
+            position: coords,
+          });
+
+          const infowindow = new kakao.maps.InfoWindow({
+            content: `<div style="padding:6px 10px;font-size:12px;font-weight:500;">${address}</div>`,
+          });
+          infowindow.open(map, new kakao.maps.Marker({ position: coords }));
+
+        } else {
+          setMapError(true);
+        }
+      });
+    });
+  }, [address]);
+
+  if (mapError) return null;
+
+  return (
+    <div>
+      <div ref={mapRef} style={{ width: "100%", height: 200, borderRadius: 10, overflow: "hidden" }} />
+      <a
+        href={`https://map.kakao.com/link/search/${encodeURIComponent(address)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ fontSize: 12, color: "#185fa5", display: "block", marginTop: 6, textAlign: "right" }}
+      >
+        카카오맵에서 보기 →
+      </a>
+    </div>
+  );
+}
 
 export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
   const dday = getDdayLabel(job.deadline);
@@ -117,6 +175,16 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
             </div>
           ))}
         </div>
+
+        {/* 카카오맵 */}
+        {job.headquarters && (
+          <div style={{ padding: "20px 20px 0" }}>
+            <h4 style={{ fontSize: 13, fontWeight: 600, color: "#888", margin: "0 0 12px", letterSpacing: "0.5px" }}>
+              본사 위치
+            </h4>
+            <KakaoMap address={job.headquarters} />
+          </div>
+        )}
 
         {/* 하단 버튼 */}
         <div style={{
