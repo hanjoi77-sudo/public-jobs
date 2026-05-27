@@ -1,308 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-
-const API_URL = "https://job-backend-brjv.onrender.com/api/jobs";
-
-function getDday(deadline) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(deadline);
-  end.setHours(0, 0, 0, 0);
-  return Math.round((end - today) / (1000 * 60 * 60 * 24));
-}
-
-function getDdayLabel(deadline) {
-  const d = getDday(deadline);
-  if (d < 0) return { label: "마감", type: "closed" };
-  if (d === 0) return { label: "오늘마감", type: "urgent" };
-  if (d <= 3) return { label: `D-${d}`, type: "urgent" };
-  if (d <= 7) return { label: `D-${d}`, type: "soon" };
-  return { label: `D-${d}`, type: "normal" };
-}
-
-function formatDeadline(date) {
-  return date ? date.replace(/-/g, ".") : "";
-}
-
-function copyToClipboard(job) {
-  const dday = getDdayLabel(job.deadline);
-  const text = `[${job.companyName}]
-${job.title}
-직무: ${job.jobCategory.join("/")}
-근무지: ${job.workLocation.join(", ")}
-마감: ${formatDeadline(job.deadline)} (${dday.label})
-링크: ${job.sourceUrl}`;
-  navigator.clipboard?.writeText(text).catch(() => {});
-}
-
-function Badge({ children, variant = "default" }) {
-  const styles = {
-    default: { background: "#f0f0ee", color: "#5f5e5a", border: "0.5px solid #d3d1c7" },
-    intern: { background: "#e1f5ee", color: "#0f6e56", border: "0.5px solid #9fe1cb" },
-    new: { background: "#e6f1fb", color: "#185fa5", border: "0.5px solid #b5d4f4" },
-    urgent: { background: "#fcebeb", color: "#a32d2d", border: "0.5px solid #f7c1c1" },
-    soon: { background: "#faeeda", color: "#854f0b", border: "0.5px solid #fac775" },
-    seoul: { background: "#eeedfe", color: "#534ab7", border: "0.5px solid #afa9ec" },
-    gyeonggi: { background: "#eaf3de", color: "#3b6d11", border: "0.5px solid #c0dd97" },
-    incheon: { background: "#fbeaf0", color: "#993556", border: "0.5px solid #f4c0d1" },
-    career: { background: "#faeeda", color: "#854f0b", border: "0.5px solid #fac775" },
-    newbie: { background: "#e6f1fb", color: "#185fa5", border: "0.5px solid #b5d4f4" },
-  };
-  const s = styles[variant] || styles.default;
-  return (
-    <span style={{
-      ...s,
-      fontSize: 11, fontWeight: 500, borderRadius: 4,
-      padding: "2px 7px", display: "inline-block",
-      lineHeight: 1.5, whiteSpace: "nowrap",
-    }}>
-      {children}
-    </span>
-  );
-}
-
-function LocationBadge({ loc }) {
-  const v = loc === "서울" ? "seoul" : loc?.includes("경기") ? "gyeonggi" : "incheon";
-  return <Badge variant={v}>{loc}</Badge>;
-}
-
-// ── 슬라이드 상세 화면 ─────────────────────────────────────────────────────
-function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
-  const dday = getDdayLabel(job.deadline);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
-
-  function handleCopy() {
-    copyToClipboard(job);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1800);
-  }
-
-  return (
-    <div style={{
-      position: "fixed", inset: 0, zIndex: 100,
-      display: "flex",
-    }}>
-      {/* 어두운 배경 */}
-      <div onClick={onClose} style={{
-        position: "absolute", inset: 0,
-        background: "rgba(0,0,0,0.3)",
-        animation: "fadeIn 0.25s ease",
-      }} />
-
-      {/* 슬라이드 패널 */}
-      <div style={{
-        position: "absolute", top: 0, right: 0, bottom: 0,
-        width: "100%", maxWidth: 480,
-        background: "#fff",
-        overflowY: "auto",
-        animation: "slideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
-        display: "flex", flexDirection: "column",
-      }}>
-        {/* 상단 헤더 */}
-        <div style={{
-          padding: "16px 20px",
-          borderBottom: "0.5px solid #e8e6e0",
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          position: "sticky", top: 0, background: "#fff", zIndex: 10,
-        }}>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
-            color: "#555", fontSize: 14, padding: 0,
-          }}>
-            ← 목록으로
-          </button>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={() => onToggleFavorite(job.id)} style={{
-              background: "none", border: "none", cursor: "pointer",
-              fontSize: 22, color: isFavorite ? "#e24b4a" : "#b4b2a9", padding: 0,
-            }}>
-              {isFavorite ? "♥" : "♡"}
-            </button>
-          </div>
-        </div>
-
-        {/* 기관 정보 */}
-        <div style={{ padding: "24px 20px 0" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <span style={{
-              fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 4,
-              background: "#f0f0ee", color: "#5f5e5a", border: "0.5px solid #d3d1c7",
-            }}>
-              {job.organizationType}
-            </span>
-            {job.isNew && <Badge variant="new">NEW</Badge>}
-            {dday.type !== "normal" && dday.type !== "closed" && (
-              <Badge variant={dday.type}>{dday.label}</Badge>
-            )}
-          </div>
-
-          <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "#1a1a1a", lineHeight: 1.25 }}>
-            {job.companyName}
-          </h2>
-          <p style={{ fontSize: 13, color: "#888", margin: "0 0 16px" }}>
-            본사: {job.headquarters}
-          </p>
-
-          <h3 style={{ fontSize: 16, fontWeight: 500, color: "#1a1a1a", margin: "0 0 16px", lineHeight: 1.5 }}>
-            {job.title}
-          </h3>
-
-          {/* 배지 */}
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 24 }}>
-            {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
-              : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
-              : <Badge variant="career">{job.careerType || "경력"}</Badge>}
-            {job.workLocation.filter(l => ["서울","경기","인천"].some(r => l.includes(r))).map(l => (
-              <LocationBadge key={l} loc={l} />
-            ))}
-            {job.jobCategory.slice(0,3).map(j => <Badge key={j}>{j}</Badge>)}
-          </div>
-        </div>
-
-        {/* 구분선 */}
-        <div style={{ height: 8, background: "#f7f6f3" }} />
-
-        {/* 상세 정보 */}
-        <div style={{ padding: "20px 20px 0" }}>
-          <h4 style={{ fontSize: 13, fontWeight: 600, color: "#888", margin: "0 0 12px", letterSpacing: "0.5px" }}>
-            채용 정보
-          </h4>
-          {[
-            ["채용 구분", job.isConversionIntern ? "채용형 인턴" : job.careerType],
-            ["고용 형태", job.employmentType],
-            ["직무 분야", job.jobCategory.join(" · ")],
-            ["근무 지역", job.workLocation.join(", ")],
-            ["접수 마감", formatDeadline(job.deadline)],
-            ["출처", job.source],
-          ].map(([label, value]) => (
-            <div key={label} style={{
-              display: "flex", padding: "12px 0",
-              borderBottom: "0.5px solid #f0f0ee",
-            }}>
-              <span style={{ fontSize: 13, color: "#888", width: 80, flexShrink: 0 }}>{label}</span>
-              <span style={{ fontSize: 13, color: "#1a1a1a", fontWeight: 500, flex: 1 }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* 하단 버튼 */}
-        <div style={{
-          padding: "20px",
-          marginTop: "auto",
-          display: "flex", gap: 10,
-          position: "sticky", bottom: 0,
-          background: "#fff",
-          borderTop: "0.5px solid #e8e6e0",
-        }}>
-          <button onClick={() => window.open(job.sourceUrl, "_blank")} style={{
-            flex: 2, padding: "14px 0", borderRadius: 12,
-            background: "#1a1a1a", color: "#fff",
-            border: "none", cursor: "pointer", fontSize: 15, fontWeight: 600,
-          }}>
-            공고 원문 보기
-          </button>
-          <button onClick={handleCopy} style={{
-            flex: 1, padding: "14px 0", borderRadius: 12,
-            background: copied ? "#e1f5ee" : "#f7f6f3",
-            color: copied ? "#0f6e56" : "#555",
-            border: "0.5px solid #d3d1c7",
-            cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.2s",
-          }}>
-            {copied ? "복사됨 ✓" : "복사"}
-          </button>
-        </div>
-      </div>
-
-      <style>{`
-        @keyframes slideIn {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-      `}</style>
-    </div>
-  );
-}
-
-function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
-  const dday = getDdayLabel(job.deadline);
-  const isClosed = dday.type === "closed";
-
-  return (
-    <div onClick={() => !isClosed && onSelect(job)} style={{
-      background: "#fff",
-      border: "0.5px solid #e8e6e0",
-      borderRadius: 14, padding: "15px 16px 12px",
-      cursor: isClosed ? "default" : "pointer",
-      opacity: isClosed ? 0.55 : 1,
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
-            <span style={{ fontSize: 11, color: "#888" }}>{job.organizationType}</span>
-            {job.isNew && !isClosed && <Badge variant="new">NEW</Badge>}
-          </div>
-          <p style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#1a1a1a", lineHeight: 1.25 }}>
-            {job.companyName}
-          </p>
-          <p style={{ fontSize: 12, color: "#888", margin: "2px 0 0" }}>{job.headquarters}</p>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
-          <button onClick={e => { e.stopPropagation(); onToggleFavorite(job.id); }} style={{
-            background: "none", border: "none", cursor: "pointer",
-            fontSize: 18, color: isFavorite ? "#e24b4a" : "#b4b2a9", padding: 0, lineHeight: 1,
-          }}>
-            {isFavorite ? "♥" : "♡"}
-          </button>
-          <span style={{
-            fontSize: 11, fontWeight: 600, borderRadius: 4, padding: "2px 7px",
-            ...(dday.type === "urgent" ? { background: "#fcebeb", color: "#a32d2d" }
-              : dday.type === "soon" ? { background: "#faeeda", color: "#854f0b" }
-              : dday.type === "closed" ? { background: "#f1efe8", color: "#888780" }
-              : { background: "#f1efe8", color: "#5f5e5a" }),
-          }}>
-            {dday.label}
-          </span>
-        </div>
-      </div>
-
-      <p style={{ fontSize: 13, color: "#333", margin: "0 0 10px", lineHeight: 1.4 }}>
-        {job.title}
-      </p>
-
-      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: 10 }}>
-        {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
-          : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
-          : <Badge variant="career">{job.careerType || "경력"}</Badge>}
-        {job.workLocation.filter(l => ["서울","경기","인천"].some(r => l.includes(r))).slice(0,2).map(l => (
-          <LocationBadge key={l} loc={l} />
-        ))}
-        {job.jobCategory.slice(0, 2).map(j => <Badge key={j}>{j}</Badge>)}
-      </div>
-
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderTop: "0.5px solid #f0f0ee", paddingTop: 9,
-      }}>
-        <div>
-          <span style={{ fontSize: 11, color: "#888" }}>접수마감 </span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: dday.type === "urgent" ? "#a32d2d" : "#1a1a1a" }}>
-            {formatDeadline(job.deadline)}
-          </span>
-        </div>
-        <span style={{ fontSize: 12, color: "#aaa" }}>출처: {job.source} →</span>
-      </div>
-    </div>
-  );
-}
+import { JobCard } from "./components/JobCard";
+import { DetailScreen } from "./components/DetailScreen";
+import { fetchJobs } from "./api/jobs";
+import { getDday } from "./utils/Helpers";
 
 export default function App() {
   const [jobs, setJobs] = useState([]);
@@ -321,20 +21,15 @@ export default function App() {
   const [sortBy, setSortBy] = useState("deadline");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  useEffect(() => { fetchJobs(); }, []);
+  useEffect(() => { loadJobs(); }, []);
 
-  async function fetchJobs() {
+  async function loadJobs() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      if (data.success) {
-        setJobs(data.data);
-        setLastUpdated(new Date(data.updatedAt).toLocaleTimeString("ko-KR"));
-      } else {
-        setError("데이터를 불러오지 못했습니다.");
-      }
+      const data = await fetchJobs();
+      setJobs(data.data);
+      setLastUpdated(new Date(data.updatedAt).toLocaleTimeString("ko-KR"));
     } catch (e) {
       setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
     } finally {
@@ -368,13 +63,12 @@ export default function App() {
         j.jobCategory.some(c => c.toLowerCase().includes(q))
       );
     }
-    list = [...list].sort((a, b) => {
+    return [...list].sort((a, b) => {
       if (sortBy === "deadline") return new Date(a.deadline) - new Date(b.deadline);
       if (sortBy === "new") return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
       if (sortBy === "name") return a.companyName.localeCompare(b.companyName, "ko");
       return 0;
     });
-    return list;
   }, [jobs, filterCareer, filterRegion, filterExtra, searchQuery, sortBy, showFavoritesOnly, favorites]);
 
   const totalJobs = jobs.filter(j => getDday(j.deadline) >= 0).length;
@@ -392,7 +86,7 @@ export default function App() {
             </h1>
             <p style={{ fontSize: 12, color: "#888", margin: 0 }}>서울·경기·인천 / 경영·회계·행정 중심</p>
           </div>
-          <button onClick={fetchJobs} style={{
+          <button onClick={loadJobs} style={{
             fontSize: 12, padding: "5px 10px", borderRadius: 7,
             background: "#f1efe8", color: "#555", border: "0.5px solid #d3d1c7", cursor: "pointer",
           }}>새로고침</button>
@@ -470,7 +164,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* Sort & count */}
+      {/* 결과 수 & 정렬 */}
       <div style={{ padding: "12px 20px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 13, color: "#555" }}>
           <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{filtered.length}</span>개 공고
@@ -486,7 +180,7 @@ export default function App() {
         </select>
       </div>
 
-      {/* Job list */}
+      {/* 공고 목록 */}
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: "#888" }}>
@@ -497,7 +191,7 @@ export default function App() {
           <div style={{ background: "#fff", borderRadius: 14, padding: "40px 20px", textAlign: "center", border: "0.5px solid #e8e6e0" }}>
             <div style={{ fontSize: 28, marginBottom: 10 }}>⚠️</div>
             <p style={{ fontSize: 14, color: "#a32d2d", margin: 0 }}>{error}</p>
-            <button onClick={fetchJobs} style={{
+            <button onClick={loadJobs} style={{
               marginTop: 16, padding: "8px 20px", borderRadius: 8,
               background: "#1a1a1a", color: "#fff", border: "none", cursor: "pointer", fontSize: 13,
             }}>다시 시도</button>
@@ -515,7 +209,7 @@ export default function App() {
         )}
       </div>
 
-      {/* Footer */}
+      {/* 푸터 */}
       <div style={{ padding: "28px 20px 0", textAlign: "center" }}>
         <p style={{ fontSize: 11, color: "#aaa", lineHeight: 1.7, margin: 0 }}>
           본 페이지는 공공기관/공기업 문과직 채용공고를 빠르게 확인하기 위한 개인용 큐레이션 도구입니다.<br />
