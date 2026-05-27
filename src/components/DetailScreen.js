@@ -39,22 +39,34 @@ function KakaoMap({ address, companyName }) {
         });
       }
 
-      // keywordSearch 대신 addressSearch 사용 (주소 변환 정확도 ↑)
-      const geocoder = new window.kakao.maps.services.Geocoder();
-      geocoder.addressSearch(address, (result, geocodeStatus) => {
-        if (geocodeStatus !== window.kakao.maps.services.Status.OK) {
-          // 주소 검색 실패 시 키워드로 fallback
-          const ps = new window.kakao.maps.services.Places();
-          ps.keywordSearch(address, (kwResult, kwStatus) => {
-            if (kwStatus !== window.kakao.maps.services.Status.OK) {
+      // headquarters가 "서울", "경기" 같은 지역명이라
+      // addressSearch가 실패함 → keywordSearch(회사명) 우선 사용
+      const ps = new window.kakao.maps.services.Places();
+
+      // 1차: 회사명으로 검색 (가장 정확)
+      ps.keywordSearch(companyName, (result, kwStatus) => {
+        if (kwStatus === window.kakao.maps.services.Status.OK) {
+          placeMarker(new window.kakao.maps.LatLng(result[0].y, result[0].x));
+          return;
+        }
+
+        // 2차: "회사명 + 지역" 조합으로 재시도
+        ps.keywordSearch(`${companyName} ${address}`, (result2, kwStatus2) => {
+          if (kwStatus2 === window.kakao.maps.services.Status.OK) {
+            placeMarker(new window.kakao.maps.LatLng(result2[0].y, result2[0].x));
+            return;
+          }
+
+          // 3차: 지역명만으로 addressSearch (마지막 수단)
+          const geocoder = new window.kakao.maps.services.Geocoder();
+          geocoder.addressSearch(address, (result3, geoStatus) => {
+            if (geoStatus !== window.kakao.maps.services.Status.OK) {
               setStatus("error");
               return;
             }
-            placeMarker(new window.kakao.maps.LatLng(kwResult[0].y, kwResult[0].x));
+            placeMarker(new window.kakao.maps.LatLng(result3[0].y, result3[0].x));
           });
-          return;
-        }
-        placeMarker(new window.kakao.maps.LatLng(result[0].y, result[0].x));
+        });
       });
     };
 
