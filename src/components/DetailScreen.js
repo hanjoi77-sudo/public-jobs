@@ -182,7 +182,7 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
             <h4 style={{ fontSize: 13, fontWeight: 600, color: "#888", margin: "0 0 12px", letterSpacing: "0.5px" }}>
               본사 위치
             </h4>
-            <KakaoMap address={job.headquarters} />
+            <KakaoMap address={`${job.companyName} ${job.headquarters}`} />
           </div>
         )}
 
