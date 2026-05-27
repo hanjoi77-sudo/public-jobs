@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo } from "react";
 
 const API_URL = "https://job-backend-brjv.onrender.com/api/jobs";
 
-// ── Utilities ──────────────────────────────────────────────────────────────
 function getDday(deadline) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -35,7 +34,6 @@ ${job.title}
   navigator.clipboard?.writeText(text).catch(() => {});
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────
 function Badge({ children, variant = "default" }) {
   const styles = {
     default: { background: "#f0f0ee", color: "#5f5e5a", border: "0.5px solid #d3d1c7" },
@@ -67,9 +65,15 @@ function LocationBadge({ loc }) {
   return <Badge variant={v}>{loc}</Badge>;
 }
 
-function DetailModal({ job, onClose, onToggleFavorite, isFavorite }) {
+// ── 슬라이드 상세 화면 ─────────────────────────────────────────────────────
+function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
   const dday = getDdayLabel(job.deadline);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
 
   function handleCopy() {
     copyToClipboard(job);
@@ -78,101 +82,152 @@ function DetailModal({ job, onClose, onToggleFavorite, isFavorite }) {
   }
 
   return (
-    <div onClick={onClose} style={{
+    <div style={{
       position: "fixed", inset: 0, zIndex: 100,
-      background: "rgba(0,0,0,0.45)",
-      display: "flex", alignItems: "flex-end",
+      display: "flex",
     }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: "100%", background: "var(--color-background-primary)",
-        borderRadius: "16px 16px 0 0", padding: "0 0 32px",
-        maxHeight: "88vh", overflowY: "auto",
+      {/* 어두운 배경 */}
+      <div onClick={onClose} style={{
+        position: "absolute", inset: 0,
+        background: "rgba(0,0,0,0.3)",
+        animation: "fadeIn 0.25s ease",
+      }} />
+
+      {/* 슬라이드 패널 */}
+      <div style={{
+        position: "absolute", top: 0, right: 0, bottom: 0,
+        width: "100%", maxWidth: 480,
+        background: "#fff",
+        overflowY: "auto",
+        animation: "slideIn 0.3s cubic-bezier(0.32, 0.72, 0, 1)",
+        display: "flex", flexDirection: "column",
       }}>
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: "var(--color-border-tertiary)" }} />
-        </div>
-
-        <div style={{ padding: "8px 20px 0" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
-            <div style={{ flex: 1, paddingRight: 12 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 4 }}>
-                <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{job.organizationType}</span>
-                {job.isNew && <Badge variant="new">NEW</Badge>}
-              </div>
-              <p style={{ fontSize: 18, fontWeight: 600, margin: "0 0 2px", color: "var(--color-text-primary)", lineHeight: 1.3 }}>
-                {job.companyName}
-              </p>
-              <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: 0 }}>
-                본사: {job.headquarters}
-              </p>
-            </div>
-            <button onClick={onClose} style={{
-              background: "none", border: "none", cursor: "pointer",
-              padding: 4, color: "var(--color-text-secondary)", fontSize: 22, lineHeight: 1,
-            }}>×</button>
-          </div>
-
-          <p style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)", margin: "14px 0 12px", lineHeight: 1.4 }}>
-            {job.title}
-          </p>
-
-          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 16 }}>
-            {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
-              : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
-              : <Badge variant="career">{job.careerType || "경력"}</Badge>}
-            {job.workLocation.map(l => <LocationBadge key={l} loc={l} />)}
-            {job.jobCategory.map(j => <Badge key={j}>{j}</Badge>)}
-            {dday.type !== "normal" && dday.type !== "closed" && <Badge variant={dday.type}>{dday.label}</Badge>}
-          </div>
-
-          <div style={{ borderTop: "0.5px solid var(--color-border-tertiary)", paddingTop: 14 }}>
-            {[
-              ["채용 구분", job.isConversionIntern ? "채용형 인턴" : job.careerType],
-              ["고용 형태", job.employmentType],
-              ["직무 분야", job.jobCategory.join(" · ")],
-              ["근무 지역", job.workLocation.join(", ")],
-              ["접수 마감", formatDeadline(job.deadline)],
-              ["출처", job.source],
-            ].map(([label, value]) => (
-              <div key={label} style={{
-                display: "flex", gap: 12, padding: "7px 0",
-                borderBottom: "0.5px solid var(--color-border-tertiary)",
-              }}>
-                <span style={{ fontSize: 13, color: "var(--color-text-secondary)", minWidth: 72, flexShrink: 0 }}>{label}</span>
-                <span style={{ fontSize: 13, color: "var(--color-text-primary)", fontWeight: 500 }}>{value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <button onClick={() => window.open(job.sourceUrl, "_blank")} style={{
-              flex: 2, padding: "13px 0", borderRadius: 10,
-              background: "#1a1a1a", color: "#fff",
-              border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500,
-            }}>
-              공고 원문 보기
-            </button>
-            <button onClick={handleCopy} style={{
-              flex: 1, padding: "13px 0", borderRadius: 10,
-              background: copied ? "#e1f5ee" : "var(--color-background-secondary)",
-              color: copied ? "#0f6e56" : "var(--color-text-primary)",
-              border: "0.5px solid var(--color-border-secondary)",
-              cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.2s",
-            }}>
-              {copied ? "복사됨 ✓" : "복사하기"}
-            </button>
+        {/* 상단 헤더 */}
+        <div style={{
+          padding: "16px 20px",
+          borderBottom: "0.5px solid #e8e6e0",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          position: "sticky", top: 0, background: "#fff", zIndex: 10,
+        }}>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6,
+            color: "#555", fontSize: 14, padding: 0,
+          }}>
+            ← 목록으로
+          </button>
+          <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => onToggleFavorite(job.id)} style={{
-              width: 46, height: 46, borderRadius: 10, flexShrink: 0,
-              background: isFavorite ? "#fcebeb" : "var(--color-background-secondary)",
-              color: isFavorite ? "#a32d2d" : "var(--color-text-secondary)",
-              border: "0.5px solid var(--color-border-secondary)",
-              cursor: "pointer", fontSize: 18, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "none", border: "none", cursor: "pointer",
+              fontSize: 22, color: isFavorite ? "#e24b4a" : "#b4b2a9", padding: 0,
             }}>
               {isFavorite ? "♥" : "♡"}
             </button>
           </div>
         </div>
+
+        {/* 기관 정보 */}
+        <div style={{ padding: "24px 20px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{
+              fontSize: 11, fontWeight: 500, padding: "2px 8px", borderRadius: 4,
+              background: "#f0f0ee", color: "#5f5e5a", border: "0.5px solid #d3d1c7",
+            }}>
+              {job.organizationType}
+            </span>
+            {job.isNew && <Badge variant="new">NEW</Badge>}
+            {dday.type !== "normal" && dday.type !== "closed" && (
+              <Badge variant={dday.type}>{dday.label}</Badge>
+            )}
+          </div>
+
+          <h2 style={{ fontSize: 22, fontWeight: 700, margin: "0 0 4px", color: "#1a1a1a", lineHeight: 1.25 }}>
+            {job.companyName}
+          </h2>
+          <p style={{ fontSize: 13, color: "#888", margin: "0 0 16px" }}>
+            본사: {job.headquarters}
+          </p>
+
+          <h3 style={{ fontSize: 16, fontWeight: 500, color: "#1a1a1a", margin: "0 0 16px", lineHeight: 1.5 }}>
+            {job.title}
+          </h3>
+
+          {/* 배지 */}
+          <div style={{ display: "flex", gap: 5, flexWrap: "wrap", marginBottom: 24 }}>
+            {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
+              : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
+              : <Badge variant="career">{job.careerType || "경력"}</Badge>}
+            {job.workLocation.filter(l => ["서울","경기","인천"].some(r => l.includes(r))).map(l => (
+              <LocationBadge key={l} loc={l} />
+            ))}
+            {job.jobCategory.slice(0,3).map(j => <Badge key={j}>{j}</Badge>)}
+          </div>
+        </div>
+
+        {/* 구분선 */}
+        <div style={{ height: 8, background: "#f7f6f3" }} />
+
+        {/* 상세 정보 */}
+        <div style={{ padding: "20px 20px 0" }}>
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: "#888", margin: "0 0 12px", letterSpacing: "0.5px" }}>
+            채용 정보
+          </h4>
+          {[
+            ["채용 구분", job.isConversionIntern ? "채용형 인턴" : job.careerType],
+            ["고용 형태", job.employmentType],
+            ["직무 분야", job.jobCategory.join(" · ")],
+            ["근무 지역", job.workLocation.join(", ")],
+            ["접수 마감", formatDeadline(job.deadline)],
+            ["출처", job.source],
+          ].map(([label, value]) => (
+            <div key={label} style={{
+              display: "flex", padding: "12px 0",
+              borderBottom: "0.5px solid #f0f0ee",
+            }}>
+              <span style={{ fontSize: 13, color: "#888", width: 80, flexShrink: 0 }}>{label}</span>
+              <span style={{ fontSize: 13, color: "#1a1a1a", fontWeight: 500, flex: 1 }}>{value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* 하단 버튼 */}
+        <div style={{
+          padding: "20px",
+          marginTop: "auto",
+          display: "flex", gap: 10,
+          position: "sticky", bottom: 0,
+          background: "#fff",
+          borderTop: "0.5px solid #e8e6e0",
+        }}>
+          <button onClick={() => window.open(job.sourceUrl, "_blank")} style={{
+            flex: 2, padding: "14px 0", borderRadius: 12,
+            background: "#1a1a1a", color: "#fff",
+            border: "none", cursor: "pointer", fontSize: 15, fontWeight: 600,
+          }}>
+            공고 원문 보기
+          </button>
+          <button onClick={handleCopy} style={{
+            flex: 1, padding: "14px 0", borderRadius: 12,
+            background: copied ? "#e1f5ee" : "#f7f6f3",
+            color: copied ? "#0f6e56" : "#555",
+            border: "0.5px solid #d3d1c7",
+            cursor: "pointer", fontSize: 13, fontWeight: 500, transition: "all 0.2s",
+          }}>
+            {copied ? "복사됨 ✓" : "복사"}
+          </button>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -183,25 +238,22 @@ function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
 
   return (
     <div onClick={() => !isClosed && onSelect(job)} style={{
-      background: "var(--color-background-primary)",
-      border: "0.5px solid var(--color-border-tertiary)",
+      background: "#fff",
+      border: "0.5px solid #e8e6e0",
       borderRadius: 14, padding: "15px 16px 12px",
       cursor: isClosed ? "default" : "pointer",
       opacity: isClosed ? 0.55 : 1,
-      position: "relative",
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
-            <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{job.organizationType}</span>
+            <span style={{ fontSize: 11, color: "#888" }}>{job.organizationType}</span>
             {job.isNew && !isClosed && <Badge variant="new">NEW</Badge>}
           </div>
-          <p style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "var(--color-text-primary)", lineHeight: 1.25 }}>
+          <p style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#1a1a1a", lineHeight: 1.25 }}>
             {job.companyName}
           </p>
-          <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "2px 0 0" }}>
-            {job.headquarters}
-          </p>
+          <p style={{ fontSize: 12, color: "#888", margin: "2px 0 0" }}>{job.headquarters}</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
           <button onClick={e => { e.stopPropagation(); onToggleFavorite(job.id); }} style={{
@@ -222,7 +274,7 @@ function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
         </div>
       </div>
 
-      <p style={{ fontSize: 13, color: "var(--color-text-primary)", margin: "0 0 10px", lineHeight: 1.4 }}>
+      <p style={{ fontSize: 13, color: "#333", margin: "0 0 10px", lineHeight: 1.4 }}>
         {job.title}
       </p>
 
@@ -230,36 +282,33 @@ function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
         {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
           : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
           : <Badge variant="career">{job.careerType || "경력"}</Badge>}
-        {job.workLocation.slice(0, 2).map(l => <LocationBadge key={l} loc={l} />)}
+        {job.workLocation.filter(l => ["서울","경기","인천"].some(r => l.includes(r))).slice(0,2).map(l => (
+          <LocationBadge key={l} loc={l} />
+        ))}
         {job.jobCategory.slice(0, 2).map(j => <Badge key={j}>{j}</Badge>)}
       </div>
 
       <div style={{
         display: "flex", justifyContent: "space-between", alignItems: "center",
-        borderTop: "0.5px solid var(--color-border-tertiary)", paddingTop: 9,
+        borderTop: "0.5px solid #f0f0ee", paddingTop: 9,
       }}>
         <div>
-          <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>접수마감 </span>
-          <span style={{ fontSize: 12, fontWeight: 500, color: dday.type === "urgent" ? "#a32d2d" : "var(--color-text-primary)" }}>
+          <span style={{ fontSize: 11, color: "#888" }}>접수마감 </span>
+          <span style={{ fontSize: 12, fontWeight: 500, color: dday.type === "urgent" ? "#a32d2d" : "#1a1a1a" }}>
             {formatDeadline(job.deadline)}
           </span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>출처: {job.source}</span>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>자세히 →</span>
-        </div>
+        <span style={{ fontSize: 12, color: "#aaa" }}>출처: {job.source} →</span>
       </div>
     </div>
   );
 }
 
-// ── Main App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem("pub_job_favorites") || "[]"); }
     catch { return []; }
@@ -272,9 +321,7 @@ export default function App() {
   const [sortBy, setSortBy] = useState("deadline");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+  useEffect(() => { fetchJobs(); }, []);
 
   async function fetchJobs() {
     setLoading(true);
@@ -289,7 +336,7 @@ export default function App() {
         setError("데이터를 불러오지 못했습니다.");
       }
     } catch (e) {
-      setError("서버에 연결할 수 없습니다. 백엔드 서버를 실행해주세요.");
+      setError("서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.");
     } finally {
       setLoading(false);
     }
@@ -306,18 +353,13 @@ export default function App() {
 
   const filtered = useMemo(() => {
     let list = jobs.filter(j => getDday(j.deadline) >= 0);
-
     if (showFavoritesOnly) list = list.filter(j => favorites.includes(j.id));
     if (filterCareer === "신입") list = list.filter(j => j.careerType === "신입" && !j.isConversionIntern);
     else if (filterCareer === "경력") list = list.filter(j => j.careerType === "경력");
     else if (filterCareer === "채용형 인턴") list = list.filter(j => j.isConversionIntern);
-
-    if (filterRegion !== "전체") {
-      list = list.filter(j => j.workLocation.some(l => l.includes(filterRegion)));
-    }
+    if (filterRegion !== "전체") list = list.filter(j => j.workLocation.some(l => l.includes(filterRegion)));
     if (filterExtra === "urgent") list = list.filter(j => { const d = getDday(j.deadline); return d >= 0 && d <= 7; });
     else if (filterExtra === "new") list = list.filter(j => j.isNew);
-
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       list = list.filter(j =>
@@ -326,14 +368,12 @@ export default function App() {
         j.jobCategory.some(c => c.toLowerCase().includes(q))
       );
     }
-
     list = [...list].sort((a, b) => {
       if (sortBy === "deadline") return new Date(a.deadline) - new Date(b.deadline);
       if (sortBy === "new") return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
       if (sortBy === "name") return a.companyName.localeCompare(b.companyName, "ko");
       return 0;
     });
-
     return list;
   }, [jobs, filterCareer, filterRegion, filterExtra, searchQuery, sortBy, showFavoritesOnly, favorites]);
 
@@ -345,22 +385,17 @@ export default function App() {
     <div style={{ fontFamily: "'Apple SD Gothic Neo', sans-serif", background: "#f7f6f3", minHeight: "100vh", paddingBottom: 40 }}>
       {/* Header */}
       <div style={{ background: "#fff", borderBottom: "0.5px solid #e8e6e0", padding: "16px 20px 0", position: "sticky", top: 0, zIndex: 50 }}>
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <h1 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 2px", color: "#1a1a1a", letterSpacing: "-0.3px" }}>
-                수도권 공공기관 문과직 채용
-              </h1>
-              <p style={{ fontSize: 12, color: "#888", margin: 0 }}>서울·경기·인천 / 경영·회계·행정 중심</p>
-            </div>
-            <button onClick={fetchJobs} style={{
-              fontSize: 12, padding: "5px 10px", borderRadius: 7,
-              background: "#f1efe8", color: "#555",
-              border: "0.5px solid #d3d1c7", cursor: "pointer",
-            }}>
-              새로고침
-            </button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+          <div>
+            <h1 style={{ fontSize: 19, fontWeight: 700, margin: "0 0 2px", color: "#1a1a1a", letterSpacing: "-0.3px" }}>
+              수도권 공공기관 문과직 채용
+            </h1>
+            <p style={{ fontSize: 12, color: "#888", margin: 0 }}>서울·경기·인천 / 경영·회계·행정 중심</p>
           </div>
+          <button onClick={fetchJobs} style={{
+            fontSize: 12, padding: "5px 10px", borderRadius: 7,
+            background: "#f1efe8", color: "#555", border: "0.5px solid #d3d1c7", cursor: "pointer",
+          }}>새로고침</button>
         </div>
 
         <div style={{ display: "flex", gap: 14, marginBottom: 12, alignItems: "center" }}>
@@ -488,9 +523,14 @@ export default function App() {
         </p>
       </div>
 
+      {/* 슬라이드 상세 화면 */}
       {selectedJob && (
-        <DetailModal job={selectedJob} onClose={() => setSelectedJob(null)}
-          onToggleFavorite={toggleFavorite} isFavorite={favorites.includes(selectedJob.id)} />
+        <DetailScreen
+          job={selectedJob}
+          onClose={() => setSelectedJob(null)}
+          onToggleFavorite={toggleFavorite}
+          isFavorite={favorites.includes(selectedJob.id)}
+        />
       )}
     </div>
   );
