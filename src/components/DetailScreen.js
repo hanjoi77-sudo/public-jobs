@@ -35,7 +35,7 @@ function KakaoMap({ address, companyName }) {
       if (!mapInstanceRef.current) {
         mapInstanceRef.current = new window.kakao.maps.Map(container, {
           center: new window.kakao.maps.LatLng(37.5665, 126.9780),
-          level: 2,   // ← 2로 바꾸기
+          level: 5,
         });
       }
 
@@ -88,7 +88,7 @@ function KakaoMap({ address, companyName }) {
       }
 
       map.setCenter(coords);
-      map.setLevel(2);   
+      map.setLevel(5);   
       setStatus("ok");
     };
 
