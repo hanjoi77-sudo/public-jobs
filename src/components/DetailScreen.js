@@ -2,48 +2,151 @@ import { useState, useEffect, useRef } from "react";
 import { Badge, LocationBadge } from "./Badge";
 import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/Helpers";
 
-function KakaoMap({ address }) {
-  const mapRef = useRef(null);
+// ─────────────────────────────────────────────
+// 수정 포인트 3가지:
+//  1) keywordSearch → addressSearch (주소 변환이 더 정확)
+//  2) window.kakao 없을 때 300ms 간격으로 최대 10회 재시도
+//  3) 지도 인스턴스를 mapInstanceRef에 보관해 중복 생성 방지
+// ─────────────────────────────────────────────
+function KakaoMap({ address, companyName }) {
+  const containerRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
+  const [status, setStatus] = useState("loading"); // "loading" | "ok" | "error"
 
   useEffect(() => {
-    if (!address || !window.kakao) return;
+    if (!address) { setStatus("error"); return; }
 
-    window.kakao.maps.load(() => {
-      const ps = new window.kakao.maps.services.Places();
-      ps.keywordSearch(address, (result, status) => {
-        if (status === window.kakao.maps.services.Status.OK && mapRef.current) {
-          const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
-          const map = new window.kakao.maps.Map(mapRef.current, {
-            center: coords,
-            level: 4,
+    // SDK 로드 대기 (최대 3초)
+    const tryInit = (retries = 10) => {
+      if (!window.kakao?.maps) {
+        if (retries <= 0) { setStatus("error"); return; }
+        setTimeout(() => tryInit(retries - 1), 300);
+        return;
+      }
+      window.kakao.maps.load(initMap);
+    };
+
+    const initMap = () => {
+      const container = containerRef.current;
+      if (!container) return;
+
+      // 지도 인스턴스가 없을 때만 생성
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = new window.kakao.maps.Map(container, {
+          center: new window.kakao.maps.LatLng(37.5665, 126.9780),
+          level: 4,
+        });
+      }
+
+      // keywordSearch 대신 addressSearch 사용 (주소 변환 정확도 ↑)
+      const geocoder = new window.kakao.maps.services.Geocoder();
+      geocoder.addressSearch(address, (result, geocodeStatus) => {
+        if (geocodeStatus !== window.kakao.maps.services.Status.OK) {
+          // 주소 검색 실패 시 키워드로 fallback
+          const ps = new window.kakao.maps.services.Places();
+          ps.keywordSearch(address, (kwResult, kwStatus) => {
+            if (kwStatus !== window.kakao.maps.services.Status.OK) {
+              setStatus("error");
+              return;
+            }
+            placeMarker(new window.kakao.maps.LatLng(kwResult[0].y, kwResult[0].x));
           });
-          new window.kakao.maps.Marker({ map, position: coords });
+          return;
         }
+        placeMarker(new window.kakao.maps.LatLng(result[0].y, result[0].x));
       });
-    });
-  }, [address]);
+    };
+
+    const placeMarker = (coords) => {
+      const map = mapInstanceRef.current;
+      if (!map) return;
+
+      // 기존 마커 제거
+      if (markerRef.current) markerRef.current.setMap(null);
+
+      markerRef.current = new window.kakao.maps.Marker({ position: coords });
+      markerRef.current.setMap(map);
+
+      if (companyName) {
+        const infowindow = new window.kakao.maps.InfoWindow({
+          content: `<div style="padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap">${companyName}</div>`,
+        });
+        infowindow.open(map, markerRef.current);
+      }
+
+      map.setCenter(coords);
+      setStatus("ok");
+    };
+
+    tryInit();
+
+    return () => {
+      if (markerRef.current) markerRef.current.setMap(null);
+    };
+  }, [address, companyName]);
+
   return (
-    <div>
-      <div ref={mapRef} style={{
-        width: "100%", height: 180,
-        borderRadius: 10, overflow: "hidden",
-        background: "#f0f0ee",
-      }} />
-      <a
-        href={`https://map.kakao.com/link/search/${encodeURIComponent(address)}`}
-        target="_blank"
-        rel="noopener noreferrer"
+    <div style={{ position: "relative" }}>
+      {/* height 명시 필수 — 없으면 지도 렌더링 안 됨 */}
+      <div
+        ref={containerRef}
         style={{
-          fontSize: 12, color: "#185fa5",
-          display: "block", marginTop: 6, textAlign: "right",
+          width: "100%",
+          height: 180,
+          borderRadius: 10,
+          overflow: "hidden",
+          background: "#f0f0ee",
         }}
-      >
-        카카오맵에서 보기 →
-      </a>
+      />
+
+      {status === "loading" && (
+        <div style={overlayStyle}>
+          <span style={{ color: "#aaa", fontSize: 13 }}>지도 불러오는 중…</span>
+        </div>
+      )}
+
+      {status === "error" && (
+        <div style={overlayStyle}>
+          <span style={{ color: "#aaa", fontSize: 13 }}>위치를 찾을 수 없습니다</span>
+        </div>
+      )}
+
+      {status === "ok" && (
+        <a
+          href={`https://map.kakao.com/link/search/${encodeURIComponent(address)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontSize: 12,
+            color: "#185fa5",
+            display: "block",
+            marginTop: 6,
+            textAlign: "right",
+          }}
+        >
+          카카오맵에서 보기 →
+        </a>
+      )}
     </div>
   );
 }
 
+const overlayStyle = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "#f5f5f3",
+  borderRadius: 10,
+};
+
+// ─────────────────────────────────────────────
+// DetailScreen — KakaoMap 호출부만 수정
+//   address: "한국보훈복지의료공단 경기" 같은 문자열 대신
+//   job.headquarters 주소를 직접 넘기는 게 더 정확
+// ─────────────────────────────────────────────
 export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
   const dday = getDdayLabel(job.deadline);
   const [copied, setCopied] = useState(false);
@@ -157,13 +260,17 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
           ))}
         </div>
 
-        {/* 카카오맵 */}
+        {/* 카카오맵 — companyName 추가로 말풍선 표시 */}
         {job.headquarters && (
           <div style={{ padding: "20px 20px 0" }}>
             <h4 style={{ fontSize: 13, fontWeight: 600, color: "#888", margin: "0 0 12px", letterSpacing: "0.5px" }}>
               본사 위치
             </h4>
-            <KakaoMap address={`${job.companyName} ${job.headquarters}`} />
+            {/* 변경: address를 headquarters만 넘기는 게 addressSearch에 더 정확 */}
+            <KakaoMap
+              address={job.headquarters}
+              companyName={job.companyName}
+            />
           </div>
         )}
 
