@@ -4,55 +4,40 @@ import { getDdayLabel, formatDeadline, copyToClipboard } from "../utils/Helpers"
 
 function KakaoMap({ address }) {
   const mapRef = useRef(null);
-  const [mapError, setMapError] = useState(false);
 
   useEffect(() => {
-    if (!address || !window.kakao) {
-      setMapError(true);
-      return;
-    }
+    if (!address || !window.kakao) return;
 
-    const { kakao } = window;
-
-    kakao.maps.load(() => {
-      const geocoder = new kakao.maps.services.Geocoder();
-
+    window.kakao.maps.load(() => {
+      const geocoder = new window.kakao.maps.services.Geocoder();
       geocoder.addressSearch(address, (result, status) => {
-        if (status === kakao.maps.services.Status.OK) {
-          const coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-
-          const map = new kakao.maps.Map(mapRef.current, {
+        if (status === window.kakao.maps.services.Status.OK && mapRef.current) {
+          const coords = new window.kakao.maps.LatLng(result[0].y, result[0].x);
+          const map = new window.kakao.maps.Map(mapRef.current, {
             center: coords,
             level: 4,
           });
-
-          new kakao.maps.Marker({
-            map,
-            position: coords,
-          });
-
-          const infowindow = new kakao.maps.InfoWindow({
-            content: `<div style="padding:6px 10px;font-size:12px;font-weight:500;">${address}</div>`,
-          });
-          infowindow.open(map, new kakao.maps.Marker({ position: coords }));
-
-        } else {
-          setMapError(true);
+          new window.kakao.maps.Marker({ map, position: coords });
         }
       });
     });
   }, [address]);
 
-  if (mapError) return null;
-
   return (
     <div>
-      <div ref={mapRef} style={{ width: "100%", height: 200, borderRadius: 10, overflow: "hidden" }} />
+      <div ref={mapRef} style={{
+        width: "100%", height: 180,
+        borderRadius: 10, overflow: "hidden",
+        background: "#f0f0ee",
+      }} />
       <a
         href={`https://map.kakao.com/link/search/${encodeURIComponent(address)}`}
         target="_blank"
         rel="noopener noreferrer"
-        style={{ fontSize: 12, color: "#185fa5", display: "block", marginTop: 6, textAlign: "right" }}
+        style={{
+          fontSize: 12, color: "#185fa5",
+          display: "block", marginTop: 6, textAlign: "right",
+        }}
       >
         카카오맵에서 보기 →
       </a>
@@ -77,14 +62,12 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
 
   return (
     <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex" }}>
-      {/* 배경 */}
       <div onClick={onClose} style={{
         position: "absolute", inset: 0,
         background: "rgba(0,0,0,0.3)",
         animation: "fadeIn 0.25s ease",
       }} />
 
-      {/* 슬라이드 패널 */}
       <div style={{
         position: "absolute", top: 0, right: 0, bottom: 0,
         width: "100%", maxWidth: 480,
@@ -102,7 +85,6 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
         }}>
           <button onClick={onClose} style={{
             background: "none", border: "none", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6,
             color: "#555", fontSize: 14, padding: 0,
           }}>
             ← 목록으로
