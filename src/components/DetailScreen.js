@@ -258,6 +258,7 @@ export function DetailScreen({ job, onClose, onToggleFavorite, isFavorite }) {
           {[
             ["채용 구분", job.isConversionIntern ? "채용형 인턴" : job.careerType],
             ["고용 형태", job.employmentType],
+            ["모집 인원", job.recruitCount ? `${job.recruitCount}명` : "-"],
             ["직무 분야", job.jobCategory.join(" · ")],
             ["근무 지역", job.workLocation.join(", ")],
             ["접수 마감", formatDeadline(job.deadline)],

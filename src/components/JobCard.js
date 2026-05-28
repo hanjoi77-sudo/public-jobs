@@ -51,6 +51,14 @@ export function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
         {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
           : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
           : <Badge variant="career">{job.careerType || "경력"}</Badge>}
+        {job.recruitCount && (
+          <span style={{
+            fontSize: 11, fontWeight: 600, borderRadius: 4, padding: "2px 7px",
+            background: "#eef3fb", color: "#2a5fc9",
+          }}>
+            {job.recruitCount}명
+          </span>
+        )}
         {job.workLocation
           .filter(l => ["서울","경기","인천"].some(r => l.includes(r)))
           .slice(0, 2)
