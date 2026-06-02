@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { JobCard } from "./components/JobCard";
+import { CompanyCard } from "./components/CompanyCard";
 import { DetailScreen } from "./components/DetailScreen";
 import { fetchJobs } from "./api/jobs";
 import { getDday } from "./utils/Helpers";
@@ -70,6 +70,16 @@ export default function App() {
       return 0;
     });
   }, [jobs, filterCareer, filterRegion, filterExtra, searchQuery, sortBy, showFavoritesOnly, favorites]);
+
+  // 회사별 그룹핑 — filtered의 정렬 순서를 유지하면서 같은 회사끼리 묶음
+  const grouped = useMemo(() => {
+    const map = new Map();
+    for (const job of filtered) {
+      if (!map.has(job.companyName)) map.set(job.companyName, []);
+      map.get(job.companyName).push(job);
+    }
+    return Array.from(map.values());
+  }, [filtered]);
 
   const totalJobs = jobs.filter(j => getDday(j.deadline) >= 0).length;
   const urgentCount = jobs.filter(j => { const d = getDday(j.deadline); return d >= 0 && d <= 7; }).length;
@@ -167,6 +177,8 @@ export default function App() {
       {/* 결과 수 & 정렬 */}
       <div style={{ padding: "12px 20px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ fontSize: 13, color: "#555" }}>
+          <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{grouped.length}</span>개 기관
+          <span style={{ color: "#ccc", margin: "0 5px" }}>·</span>
           <span style={{ fontWeight: 600, color: "#1a1a1a" }}>{filtered.length}</span>개 공고
           {lastUpdated && <span style={{ fontSize: 11, color: "#aaa", marginLeft: 8 }}>({lastUpdated} 기준)</span>}
         </span>
@@ -202,9 +214,14 @@ export default function App() {
             <p style={{ fontSize: 14, color: "#888", margin: 0 }}>조건에 맞는 공고가 없습니다</p>
           </div>
         ) : (
-          filtered.map(job => (
-            <JobCard key={job.id} job={job} onSelect={setSelectedJob}
-              onToggleFavorite={toggleFavorite} isFavorite={favorites.includes(job.id)} />
+          grouped.map(group => (
+            <CompanyCard
+              key={group[0].companyName}
+              group={group}
+              onSelect={setSelectedJob}
+              onToggleFavorite={toggleFavorite}
+              favorites={favorites}
+            />
           ))
         )}
       </div>
