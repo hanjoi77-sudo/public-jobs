@@ -263,12 +263,7 @@ export default function App() {
                   <p style={{ fontSize: 14, color: "#888" }}>조건에 맞는 공고가 없습니다</p>
                 </div>
               ) : (
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(3, 1fr)",
-                  gap: 16,
-                  alignItems: "start",
-                }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {grouped.map(group => (
                     <CompanyCard key={group[0].companyName} group={group}
                       onSelect={setSelectedJob} onToggleFavorite={toggleFavorite} favorites={favorites} />
@@ -337,13 +332,7 @@ export default function App() {
           </div>
 
           {/* 카드 목록 */}
-          <div style={{
-            padding: "0 16px",
-            display: isTablet ? "grid" : "flex",
-            gridTemplateColumns: isTablet ? "repeat(2, 1fr)" : undefined,
-            flexDirection: isTablet ? undefined : "column",
-            gap: 10,
-          }}>
+          <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 8 }}>
             {loading ? (
               <div style={{ textAlign: "center", padding: "60px 20px", color: "#888", gridColumn: "1 / -1" }}>
                 <div style={{ fontSize: 28, marginBottom: 10 }}>⏳</div>
