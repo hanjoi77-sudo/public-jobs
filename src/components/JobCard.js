@@ -17,6 +17,8 @@ export function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
         <div style={{ flex: 1, minWidth: 0, paddingRight: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginBottom: 3 }}>
             <span style={{ fontSize: 11, color: "#888" }}>{job.organizationType}</span>
+            <span style={{ fontSize: 11, color: "#bbb" }}>·</span>
+            <span style={{ fontSize: 11, color: "#bbb" }}>{job.source}</span>
             {job.isNew && !isClosed && <Badge variant="new">NEW</Badge>}
           </div>
           <p style={{ fontSize: 16, fontWeight: 600, margin: 0, color: "#1a1a1a", lineHeight: 1.25 }}>
@@ -68,7 +70,11 @@ export function JobCard({ job, onSelect, onToggleFavorite, isFavorite }) {
             {formatDeadline(job.deadline)}
           </span>
         </div>
-        <span style={{ fontSize: 12, color: "#aaa" }}>출처: {job.source} →</span>
+        {job.recruitCount && (
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#2a5fc9" }}>
+            {job.recruitCount}명 채용
+          </span>
+        )}
       </div>
     </div>
   );
