@@ -110,7 +110,7 @@ export default function App() {
       if (sortBy === "name") return a.companyName.localeCompare(b.companyName, "ko");
       return 0;
     });
-  }, [jobs, filterCareer, filterRegion, filterExtra, searchQuery, sortBy, showFavoritesOnly, favorites]);
+  }, [jobs, filterCareer, filterRegion, filterSource, filterExtra, searchQuery, sortBy, showFavoritesOnly, favorites]);
 
   const grouped = useMemo(() => {
     const map = new Map();

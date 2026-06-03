@@ -139,7 +139,7 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
         </div>
       </div>
 
-      {/* 공고 목록 */}
+      {/* 공고 목록 — 단일카드 양식과 동일하게 */}
       {group.map(job => {
         const dday = getDdayLabel(job.deadline);
         const isClosed = dday.type === "closed";
@@ -149,34 +149,39 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
           <div key={job.id}
             onClick={() => !isClosed && onSelect(job)}
             style={{
-              display: "flex", alignItems: "flex-start", gap: 10,
-              padding: "11px 20px",
-              borderTop: "1px solid #F9FAFB",
+              padding: "12px 20px",
+              borderTop: "1px solid #F3F4F6",
               cursor: isClosed ? "default" : "pointer",
               opacity: isClosed ? 0.5 : 1,
             }}
           >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 500, color: "#1F2937", margin: "0 0 6px", lineHeight: 1.45 }}>
+            {/* 공고 제목 + D-day + 즐겨찾기 */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
+              <p style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, color: "#374151", margin: 0, lineHeight: 1.5 }}>
                 {job.title}
               </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
-                {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
-                  : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
-                  : <Badge variant="career">{job.careerType || "경력"}</Badge>}
-                {job.recruitCount && (
-                  <span style={{ fontSize: 10, fontWeight: 600, color: "#2563EB", background: "#EFF6FF", padding: "1px 5px", borderRadius: 3 }}>
-                    {job.recruitCount}명
-                  </span>
-                )}
-                <span style={{ marginLeft: "auto", fontSize: 11, color: dday.type === "urgent" ? "#C92A2A" : "#9CA3AF", whiteSpace: "nowrap" }}>
-                  ~ {formatDeadline(job.deadline)}
-                </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0 }}>
+                <DdayChip type={dday.type} label={dday.label} />
+                <FavBtn isFavorite={isFavorite} onClick={() => onToggleFavorite(job.id)} size={15} />
               </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, paddingTop: 1 }}>
-              <DdayChip type={dday.type} label={dday.label} />
-              <FavBtn isFavorite={isFavorite} onClick={() => onToggleFavorite(job.id)} size={15} />
+            {/* 뱃지 + 마감일 */}
+            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+              {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
+                : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
+                : <Badge variant="career">{job.careerType || "경력"}</Badge>}
+              {job.recruitCount && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#2563EB", background: "#EFF6FF", padding: "2px 7px", borderRadius: 4 }}>
+                  {job.recruitCount}명
+                </span>
+              )}
+              {job.workLocation
+                .filter(l => ["서울", "경기", "인천"].some(r => l.includes(r)))
+                .slice(0, 2)
+                .map(l => <LocationBadge key={l} loc={l} />)}
+              <span style={{ marginLeft: "auto", fontSize: 12, color: dday.type === "urgent" ? "#C92A2A" : "#9CA3AF", whiteSpace: "nowrap" }}>
+                ~ {formatDeadline(job.deadline)}
+              </span>
             </div>
           </div>
         );
