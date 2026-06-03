@@ -27,8 +27,12 @@ function FavBtn({ isFavorite, onClick, size = 17 }) {
 }
 
 function SourceTag({ source }) {
-  const color = source === "사람인" ? "#E8590C" : "#1971C2";
-  const bg    = source === "사람인" ? "#FFF4EE" : "#E7F5FF";
+  const config = {
+    "사람인":    { color: "#E8590C", bg: "#FFF4EE" },
+    "잡알리오":  { color: "#1971C2", bg: "#E7F5FF" },
+    "자소설닷컴": { color: "#0D9488", bg: "#F0FDFA" },
+  };
+  const { color, bg } = config[source] || { color: "#6B7280", bg: "#F3F4F6" };
   return (
     <span style={{ fontSize: 10, fontWeight: 600, color, background: bg, padding: "1px 6px", borderRadius: 4 }}>
       {source}
