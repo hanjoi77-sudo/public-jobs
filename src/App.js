@@ -51,6 +51,7 @@ export default function App() {
   const [selectedJob, setSelectedJob] = useState(null);
   const [filterCareer, setFilterCareer] = useState("전체");
   const [filterRegion, setFilterRegion] = useState("전체");
+  const [filterSource, setFilterSource] = useState("전체");
   const [filterExtra, setFilterExtra] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
@@ -92,6 +93,7 @@ export default function App() {
     );
     else if (filterCareer === "채용형 인턴") list = list.filter(j => j.isConversionIntern);
     if (filterRegion !== "전체") list = list.filter(j => j.workLocation.some(l => l.includes(filterRegion)));
+    if (filterSource !== "전체") list = list.filter(j => j.source === filterSource);
     if (filterExtra === "urgent") list = list.filter(j => { const d = getDday(j.deadline); return d >= 0 && d <= 7; });
     else if (filterExtra === "new") list = list.filter(j => j.isNew);
     if (searchQuery.trim()) {
@@ -162,6 +164,20 @@ export default function App() {
       <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: 12, paddingBottom: 2 }}>
         {REGION_FILTERS.map(({ label, value, color }) => (
           <FilterChip key={value} label={label} active={filterRegion === value} onClick={() => setFilterRegion(value)} activeColor={color} />
+        ))}
+      </div>
+
+      {/* 출처 */}
+      {isPC && <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>출처</p>}
+      <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: 12, paddingBottom: 2 }}>
+        {[
+          { label: "전체", value: "전체", color: "#1F2937" },
+          { label: "잡알리오", value: "잡알리오", color: "#1971C2" },
+          { label: "사람인", value: "사람인", color: "#E8590C" },
+          { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
+        ].map(({ label, value, color }) => (
+          <FilterChip key={value} label={label} active={filterSource === value}
+            onClick={() => setFilterSource(value)} activeColor={color} />
         ))}
       </div>
 

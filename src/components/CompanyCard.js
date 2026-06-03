@@ -116,21 +116,26 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
     }}>
       {/* 기관 헤더 */}
       <div style={{ padding: "18px 20px 12px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-          <span style={{ fontSize: 17, fontWeight: 700, color: "#111827", flex: 1, lineHeight: 1.3 }}>
-            {rep.companyName}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <span style={{ fontSize: 11, color: "#9CA3AF" }}>{rep.organizationType}</span>
+          <span style={{ color: "#E5E7EB", fontSize: 10 }}>·</span>
+          <SourceTag source={rep.source} />
           {hasNew && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "2px 7px", borderRadius: 4 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "1px 6px", borderRadius: 4 }}>
               NEW
             </span>
           )}
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>
-            {group.length}개 공고
-          </span>
+          <div style={{ marginLeft: "auto" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: "#6B7280", background: "#F3F4F6", padding: "3px 9px", borderRadius: 6, whiteSpace: "nowrap" }}>
+              {group.length}개 공고
+            </span>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{rep.organizationType} · {rep.headquarters}</span>
+        <span style={{ fontSize: 17, fontWeight: 700, color: "#111827", lineHeight: 1.3 }}>
+          {rep.companyName}
+        </span>
+        <div style={{ marginTop: 4 }}>
+          <span style={{ fontSize: 12, color: "#9CA3AF" }}>{rep.headquarters}</span>
         </div>
       </div>
 
@@ -177,11 +182,6 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
         );
       })}
 
-      {/* 출처 */}
-      <div style={{ padding: "8px 20px", borderTop: "1px solid #F9FAFB", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6 }}>
-        <SourceTag source={rep.source} />
-        <span style={{ fontSize: 11, color: "#D1D5DB" }}>출처</span>
-      </div>
     </div>
   );
 }
