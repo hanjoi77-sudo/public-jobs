@@ -53,6 +53,7 @@ export default function App() {
   const [filterRegion, setFilterRegion] = useState("전체");
   const [filterSource, setFilterSource] = useState("전체");
   const [filterExtra, setFilterExtra] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -125,84 +126,101 @@ export default function App() {
   const urgentCount = jobs.filter(j => { const d = getDday(j.deadline); return d >= 0 && d <= 7; }).length;
   const newCount = jobs.filter(j => j.isNew && getDday(j.deadline) >= 0).length;
 
-  const Filters = () => (
-    <div>
-      {/* 검색 */}
-      <div style={{ position: "relative", marginBottom: 16 }}>
-        <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", fontSize: 15 }}>🔍</span>
-        <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-          placeholder="기관명 또는 키워드 검색"
-          style={{
-            width: "100%", boxSizing: "border-box",
-            padding: "10px 36px 10px 36px",
-            border: "1.5px solid #E5E7EB", borderRadius: 12,
-            fontSize: 13, background: "#fff", color: "#111827", outline: "none",
-            transition: "border-color 0.15s",
-          }}
-          onFocus={e => e.target.style.borderColor = "#6366F1"}
-          onBlur={e => e.target.style.borderColor = "#E5E7EB"}
-        />
-        {searchQuery && (
-          <button onClick={() => setSearchQuery("")} style={{
-            position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)",
-            background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 16,
-          }}>×</button>
+  const activeFilterCount = [
+    filterCareer !== "전체",
+    filterRegion !== "전체",
+    filterSource !== "전체",
+    filterExtra !== null,
+    showFavoritesOnly,
+  ].filter(Boolean).length;
+
+  const SOURCE_COLORS = { "잡알리오": "#1971C2", "사람인": "#E8590C", "자소설닷컴": "#0D9488" };
+  const REGION_COLORS = { "서울": "#4338CA", "경기": "#166534", "인천": "#9D174D" };
+
+  const activeChips = [
+    filterCareer !== "전체" && { label: filterCareer, onRemove: () => setFilterCareer("전체"), color: "#1F2937" },
+    filterRegion !== "전체" && { label: filterRegion, onRemove: () => setFilterRegion("전체"), color: REGION_COLORS[filterRegion] },
+    filterSource !== "전체" && { label: filterSource, onRemove: () => setFilterSource("전체"), color: SOURCE_COLORS[filterSource] },
+    filterExtra === "urgent" && { label: "⚡ 마감임박", onRemove: () => setFilterExtra(null), color: "#DC2626" },
+    filterExtra === "new" && { label: "✨ 신규", onRemove: () => setFilterExtra(null), color: "#2563EB" },
+    showFavoritesOnly && { label: "♥ 관심공고", onRemove: () => setShowFavoritesOnly(false), color: "#DC2626" },
+  ].filter(Boolean);
+
+  const Filters = ({ sheet = false }) => {
+    const wrap = isPC || sheet;
+    const label = (text) => wrap && (
+      <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>{text}</p>
+    );
+    const row = (children, mb = 12) => (
+      <div style={{ display: "flex", gap: 6, flexWrap: wrap ? "wrap" : "nowrap", overflowX: wrap ? "visible" : "auto", marginBottom: mb, paddingBottom: 2 }}>
+        {children}
+      </div>
+    );
+    return (
+      <div>
+        {/* 검색 — PC + 시트에만 표시 */}
+        {wrap && (
+          <div style={{ position: "relative", marginBottom: 16 }}>
+            <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", fontSize: 15 }}>🔍</span>
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              placeholder="기관명 또는 키워드 검색"
+              style={{
+                width: "100%", boxSizing: "border-box", padding: "10px 36px 10px 36px",
+                border: "1.5px solid #E5E7EB", borderRadius: 12, fontSize: 13,
+                background: "#fff", color: "#111827", outline: "none",
+              }}
+              onFocus={e => e.target.style.borderColor = "#6366F1"}
+              onBlur={e => e.target.style.borderColor = "#E5E7EB"}
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 16 }}>×</button>
+            )}
+          </div>
         )}
-      </div>
 
-      {/* 채용 구분 */}
-      {isPC && <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>채용 구분</p>}
-      <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: 12, paddingBottom: 2 }}>
-        {CAREER_FILTERS.map(f => (
-          <FilterChip key={f} label={f} active={filterCareer === f} onClick={() => setFilterCareer(f)}
-            style={isPC ? { width: "100%" } : {}} />
-        ))}
-      </div>
+        {label("채용 구분")}
+        {row(CAREER_FILTERS.map(f => (
+          <FilterChip key={f} label={f} active={filterCareer === f} onClick={() => setFilterCareer(f)} />
+        )))}
 
-      {/* 지역 */}
-      {isPC && <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>지역</p>}
-      <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: 12, paddingBottom: 2 }}>
-        {REGION_FILTERS.map(({ label, value, color }) => (
-          <FilterChip key={value} label={label} active={filterRegion === value} onClick={() => setFilterRegion(value)} activeColor={color} />
-        ))}
-      </div>
+        {label("지역")}
+        {row(REGION_FILTERS.map(({ label: l, value, color }) => (
+          <FilterChip key={value} label={l} active={filterRegion === value} onClick={() => setFilterRegion(value)} activeColor={color} />
+        )))}
 
-      {/* 출처 */}
-      {isPC && <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>출처</p>}
-      <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: 12, paddingBottom: 2 }}>
-        {[
+        {label("출처")}
+        {row([
           { label: "전체", value: "전체", color: "#1F2937" },
           { label: "잡알리오", value: "잡알리오", color: "#1971C2" },
           { label: "사람인", value: "사람인", color: "#E8590C" },
           { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
-        ].map(({ label, value, color }) => (
-          <FilterChip key={value} label={label} active={filterSource === value}
-            onClick={() => setFilterSource(value)} activeColor={color} />
-        ))}
-      </div>
+        ].map(({ label: l, value, color }) => (
+          <FilterChip key={value} label={l} active={filterSource === value} onClick={() => setFilterSource(value)} activeColor={color} />
+        )))}
 
-      {/* 빠른 필터 */}
-      {isPC && <p style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF", margin: "0 0 8px", letterSpacing: "0.6px", textTransform: "uppercase" }}>빠른 필터</p>}
-      <div style={{ display: "flex", gap: 6, flexWrap: isPC ? "wrap" : "nowrap", overflowX: isPC ? "visible" : "auto", marginBottom: isPC ? 16 : 0 }}>
-        {[{ key: "urgent", label: "⚡ 마감임박", activeColor: "#DC2626" }, { key: "new", label: "✨ 신규", activeColor: "#2563EB" }].map(({ key, label, activeColor }) => (
-          <FilterChip key={key} label={label} active={filterExtra === key}
+        {label("빠른 필터")}
+        {row([
+          { key: "urgent", label: "⚡ 마감임박", activeColor: "#DC2626" },
+          { key: "new", label: "✨ 신규", activeColor: "#2563EB" },
+        ].map(({ key, label: l, activeColor }) => (
+          <FilterChip key={key} label={l} active={filterExtra === key}
             onClick={() => setFilterExtra(p => p === key ? null : key)} activeColor={activeColor} />
-        ))}
-      </div>
+        )), wrap ? 16 : 0)}
 
-      {isPC && (
-        <button onClick={() => setShowFavoritesOnly(p => !p)} style={{
-          width: "100%", marginTop: 8, padding: "10px 14px", borderRadius: 10, cursor: "pointer",
-          background: showFavoritesOnly ? "#FEF2F2" : "#F9FAFB",
-          color: showFavoritesOnly ? "#DC2626" : "#6B7280",
-          border: "1.5px solid " + (showFavoritesOnly ? "#FECACA" : "#E5E7EB"),
-          fontSize: 13, fontWeight: 500, textAlign: "left", transition: "all 0.15s",
-        }}>
-          {showFavoritesOnly ? "♥ 관심공고만 보기" : "♡ 관심공고 보기"}
-        </button>
-      )}
-    </div>
-  );
+        {wrap && (
+          <button onClick={() => setShowFavoritesOnly(p => !p)} style={{
+            width: "100%", marginTop: 4, padding: "10px 14px", borderRadius: 10, cursor: "pointer",
+            background: showFavoritesOnly ? "#FEF2F2" : "#F9FAFB",
+            color: showFavoritesOnly ? "#DC2626" : "#6B7280",
+            border: "1.5px solid " + (showFavoritesOnly ? "#FECACA" : "#E5E7EB"),
+            fontSize: 13, fontWeight: 500, textAlign: "left",
+          }}>
+            {showFavoritesOnly ? "♥ 관심공고만 보기" : "♡ 관심공고 보기"}
+          </button>
+        )}
+      </div>
+    );
+  };
 
   const EmptyState = ({ icon, message }) => (
     <div style={{ background: "#fff", borderRadius: 16, padding: "60px 20px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
@@ -316,45 +334,87 @@ export default function App() {
 
       {/* ── 모바일/태블릿 ── */}
       {!isPC && (
-        <div style={{ paddingBottom: 48 }}>
-          {/* 헤더 */}
-          <div style={{ background: "#fff", borderBottom: "1px solid #F3F4F6", padding: "16px 20px 0", position: "sticky", top: 0, zIndex: 50 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ paddingBottom: 60 }}>
+          {/* 슬림 헤더 */}
+          <div style={{ background: "#fff", borderBottom: "1px solid #F3F4F6", position: "sticky", top: 0, zIndex: 50 }}>
+            {/* 타이틀 + 버튼 */}
+            <div style={{ padding: "14px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h1 style={{ fontSize: 18, fontWeight: 800, margin: "0 0 3px", color: "#111827", letterSpacing: "-0.3px" }}>
+                <h1 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 2px", color: "#111827", letterSpacing: "-0.3px" }}>
                   수도권 공공기관 문과직
                 </h1>
-                <p style={{ fontSize: 11, color: "#9CA3AF", margin: 0 }}>서울 · 경기 · 인천 / 행정 · 사무 중심</p>
+                <StatsRow />
               </div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
                 <button onClick={() => setShowFavoritesOnly(p => !p)} style={{
-                  padding: "5px 11px", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 500,
+                  width: 34, height: 34, borderRadius: 10, cursor: "pointer", fontSize: 15,
                   background: showFavoritesOnly ? "#FEF2F2" : "#F3F4F6",
                   color: showFavoritesOnly ? "#DC2626" : "#6B7280",
                   border: "1.5px solid " + (showFavoritesOnly ? "#FECACA" : "#E5E7EB"),
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {showFavoritesOnly ? "♥" : "♡"}
                 </button>
                 <button onClick={loadJobs} style={{
-                  padding: "5px 11px", borderRadius: 8, fontSize: 12, fontWeight: 500,
-                  background: "#F3F4F6", color: "#6B7280", border: "1.5px solid #E5E7EB", cursor: "pointer",
+                  width: 34, height: 34, borderRadius: 10, fontSize: 15, cursor: "pointer",
+                  background: "#F3F4F6", color: "#6B7280", border: "1.5px solid #E5E7EB",
+                  display: "flex", alignItems: "center", justifyContent: "center",
                 }}>↺</button>
               </div>
             </div>
 
-            {/* 통계 */}
-            <div style={{ marginBottom: 12 }}>
-              <StatsRow />
+            {/* 검색 + 필터 버튼 */}
+            <div style={{ padding: "0 16px 10px", display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ position: "relative", flex: 1 }}>
+                <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", fontSize: 13 }}>🔍</span>
+                <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="기관명 또는 키워드"
+                  style={{
+                    width: "100%", boxSizing: "border-box", padding: "9px 28px 9px 30px",
+                    border: "1.5px solid #E5E7EB", borderRadius: 10, fontSize: 13,
+                    background: "#F9FAFB", color: "#111827", outline: "none",
+                  }}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9CA3AF", fontSize: 15 }}>×</button>
+                )}
+              </div>
+              <button onClick={() => setFilterOpen(true)} style={{
+                flexShrink: 0, padding: "9px 14px", borderRadius: 10, cursor: "pointer",
+                fontSize: 13, fontWeight: 600,
+                background: activeFilterCount > 0 ? "#1F2937" : "#F3F4F6",
+                color: activeFilterCount > 0 ? "#fff" : "#374151",
+                border: "1.5px solid " + (activeFilterCount > 0 ? "#1F2937" : "#E5E7EB"),
+                display: "flex", alignItems: "center", gap: 5,
+              }}>
+                <span>필터</span>
+                {activeFilterCount > 0 && (
+                  <span style={{ background: "#fff", color: "#1F2937", borderRadius: 10, fontSize: 11, fontWeight: 700, padding: "1px 6px" }}>
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* 필터 */}
-            <div style={{ paddingBottom: 12 }}>
-              <Filters />
-            </div>
+            {/* 활성 필터 칩 */}
+            {activeChips.length > 0 && (
+              <div style={{ display: "flex", gap: 6, padding: "0 16px 10px", overflowX: "auto" }}>
+                {activeChips.map(chip => (
+                  <button key={chip.label} onClick={chip.onRemove} style={{
+                    flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
+                    padding: "4px 10px", borderRadius: 20, fontSize: 12, fontWeight: 600,
+                    background: chip.color + "18", color: chip.color,
+                    border: "1px solid " + chip.color + "44", cursor: "pointer",
+                  }}>
+                    {chip.label} <span style={{ fontSize: 14, lineHeight: 1 }}>×</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* 결과 헤더 */}
-          <div style={{ padding: "14px 20px 10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {/* 결과 수 + 정렬 */}
+          <div style={{ padding: "12px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 13, color: "#6B7280" }}>
               <strong style={{ color: "#111827" }}>{grouped.length}</strong>개 기관 ·{" "}
               <strong style={{ color: "#111827" }}>{filtered.length}</strong>개 공고
@@ -373,6 +433,50 @@ export default function App() {
             </p>
           </div>
         </div>
+      )}
+
+      {/* 모바일 바텀시트 필터 */}
+      {!isPC && filterOpen && (
+        <>
+          <div onClick={() => setFilterOpen(false)} style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200,
+          }} />
+          <div style={{
+            position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
+            background: "#fff", borderRadius: "20px 20px 0 0",
+            maxHeight: "88vh", overflowY: "auto",
+            boxShadow: "0 -4px 24px rgba(0,0,0,0.12)",
+          }}>
+            {/* 핸들 + 헤더 */}
+            <div style={{ padding: "12px 20px 0", position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #F3F4F6", zIndex: 1 }}>
+              <div style={{ width: 36, height: 4, background: "#E5E7EB", borderRadius: 2, margin: "0 auto 14px" }} />
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#111827" }}>필터</span>
+                <button onClick={() => {
+                  setFilterCareer("전체"); setFilterRegion("전체");
+                  setFilterSource("전체"); setFilterExtra(null); setShowFavoritesOnly(false);
+                }} style={{ fontSize: 13, color: "#9CA3AF", background: "none", border: "none", cursor: "pointer", fontWeight: 500 }}>
+                  초기화
+                </button>
+              </div>
+            </div>
+
+            {/* 필터 내용 */}
+            <div style={{ padding: "16px 20px 0" }}>
+              <Filters sheet />
+            </div>
+
+            {/* 적용 버튼 */}
+            <div style={{ padding: "16px 20px 32px", position: "sticky", bottom: 0, background: "#fff", borderTop: "1px solid #F3F4F6" }}>
+              <button onClick={() => setFilterOpen(false)} style={{
+                width: "100%", padding: "14px", borderRadius: 12, border: "none", cursor: "pointer",
+                background: "#111827", color: "#fff", fontSize: 15, fontWeight: 700,
+              }}>
+                공고 {filtered.length}개 보기
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {selectedJob && (
