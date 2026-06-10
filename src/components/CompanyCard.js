@@ -31,6 +31,7 @@ function SourceTag({ source }) {
     "사람인":    { color: "#E8590C", bg: "#FFF4EE" },
     "잡알리오":  { color: "#1971C2", bg: "#E7F5FF" },
     "자소설닷컴": { color: "#0D9488", bg: "#F0FDFA" },
+    "클린아이":  { color: "#7C3AED", bg: "#F5F3FF" },
   };
   const { color, bg } = config[source] || { color: "#6B7280", bg: "#F3F4F6" };
   return (

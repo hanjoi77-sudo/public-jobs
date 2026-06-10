@@ -134,7 +134,7 @@ export default function App() {
     showFavoritesOnly,
   ].filter(Boolean).length;
 
-  const SOURCE_COLORS = { "잡알리오": "#1971C2", "사람인": "#E8590C", "자소설닷컴": "#0D9488" };
+  const SOURCE_COLORS = { "잡알리오": "#1971C2", "사람인": "#E8590C", "자소설닷컴": "#0D9488", "클린아이": "#7C3AED" };
   const REGION_COLORS = { "서울": "#4338CA", "경기": "#166534", "인천": "#9D174D" };
 
   const activeChips = [
@@ -194,6 +194,7 @@ export default function App() {
           { label: "잡알리오", value: "잡알리오", color: "#1971C2" },
           { label: "사람인", value: "사람인", color: "#E8590C" },
           { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
+          { label: "클린아이", value: "클린아이", color: "#7C3AED" },
         ].map(({ label: l, value, color }) => (
           <FilterChip key={value} label={l} active={filterSource === value} onClick={() => setFilterSource(value)} activeColor={color} />
         )))}
