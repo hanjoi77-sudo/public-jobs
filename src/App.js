@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { CompanyCard } from "./components/CompanyCard";
 import { DetailScreen } from "./components/DetailScreen";
-import { fetchJobs } from "./api/Jobs";
+import { fetchJobs, triggerRefresh } from "./api/Jobs";
 import { getDday } from "./utils/Helpers";
 
 function useWindowWidth() {
@@ -54,11 +54,24 @@ export default function App() {
   const [filterSource, setFilterSource] = useState("전체");
   const [filterExtra, setFilterExtra] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [refreshState, setRefreshState] = useState("idle"); // idle | refreshing | done
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   useEffect(() => { loadJobs(); }, []);
+
+  async function handleRefresh() {
+    if (refreshState === "refreshing") return;
+    setRefreshState("refreshing");
+    await triggerRefresh();
+    // 서버 갱신 완료까지 ~60초 대기 후 새 데이터 로드
+    setTimeout(async () => {
+      await loadJobs();
+      setRefreshState("done");
+      setTimeout(() => setRefreshState("idle"), 3000);
+    }, 60000);
+  }
 
   async function loadJobs() {
     setLoading(true);
@@ -294,10 +307,14 @@ export default function App() {
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <StatsRow />
-              <button onClick={loadJobs} style={{
-                fontSize: 12, padding: "8px 16px", borderRadius: 8,
-                background: "#fff", color: "#374151", border: "1.5px solid #E5E7EB", cursor: "pointer", fontWeight: 500,
-              }}>새로고침</button>
+              <button onClick={handleRefresh} disabled={refreshState === "refreshing"} style={{
+                fontSize: 12, padding: "8px 16px", borderRadius: 8, cursor: refreshState === "refreshing" ? "not-allowed" : "pointer", fontWeight: 500,
+                background: refreshState === "done" ? "#ECFDF5" : refreshState === "refreshing" ? "#F9FAFB" : "#fff",
+                color: refreshState === "done" ? "#059669" : "#374151",
+                border: "1.5px solid " + (refreshState === "done" ? "#6EE7B7" : "#E5E7EB"),
+              }}>
+                {refreshState === "refreshing" ? "⏳ 업데이트 중..." : refreshState === "done" ? "✓ 완료" : "↺ 데이터 업데이트"}
+              </button>
             </div>
           </div>
 
@@ -356,11 +373,16 @@ export default function App() {
                 }}>
                   {showFavoritesOnly ? "♥" : "♡"}
                 </button>
-                <button onClick={loadJobs} style={{
-                  width: 34, height: 34, borderRadius: 10, fontSize: 15, cursor: "pointer",
-                  background: "#F3F4F6", color: "#6B7280", border: "1.5px solid #E5E7EB",
+                <button onClick={handleRefresh} disabled={refreshState === "refreshing"} title="데이터 업데이트" style={{
+                  width: 34, height: 34, borderRadius: 10, fontSize: 15,
+                  cursor: refreshState === "refreshing" ? "not-allowed" : "pointer",
+                  background: refreshState === "done" ? "#ECFDF5" : "#F3F4F6",
+                  color: refreshState === "done" ? "#059669" : "#6B7280",
+                  border: "1.5px solid " + (refreshState === "done" ? "#6EE7B7" : "#E5E7EB"),
                   display: "flex", alignItems: "center", justifyContent: "center",
-                }}>↺</button>
+                }}>
+                  {refreshState === "refreshing" ? "⏳" : refreshState === "done" ? "✓" : "↺"}
+                </button>
               </div>
             </div>
 
