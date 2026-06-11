@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { CompanyCard } from "./components/CompanyCard";
 import { DetailScreen } from "./components/DetailScreen";
-import { fetchJobs, triggerRefresh } from "./api/Jobs";
+import { fetchJobs, fetchLargeCompanyJobs, triggerRefresh } from "./api/Jobs";
 import { getDday } from "./utils/Helpers";
 
 function useWindowWidth() {
@@ -14,12 +14,26 @@ function useWindowWidth() {
   return width;
 }
 
-const CAREER_FILTERS = ["전체", "신입", "경력", "채용형 인턴"];
 const REGION_FILTERS = [
   { label: "전체", value: "전체", color: "#1F2937" },
   { label: "서울", value: "서울", color: "#4338CA" },
   { label: "경기", value: "경기", color: "#166534" },
   { label: "인천", value: "인천", color: "#9D174D" },
+];
+
+const PUBLIC_SOURCES = [
+  { label: "전체", value: "전체", color: "#1F2937" },
+  { label: "잡알리오", value: "잡알리오", color: "#1971C2" },
+  { label: "사람인", value: "사람인", color: "#E8590C" },
+  { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
+  { label: "클린아이", value: "클린아이", color: "#7C3AED" },
+];
+
+const LARGE_SOURCES = [
+  { label: "전체", value: "전체", color: "#1F2937" },
+  { label: "사람인", value: "사람인", color: "#E8590C" },
+  { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
+  { label: "캐치", value: "캐치", color: "#0E7A6E" },
 ];
 
 function FilterChip({ label, active, onClick, activeColor }) {
@@ -40,6 +54,7 @@ export default function App() {
   const width = useWindowWidth();
   const isPC = width >= 1024;
 
+  const [sectorTab, setSectorTab] = useState("public");
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,30 +69,41 @@ export default function App() {
   const [filterSource, setFilterSource] = useState("전체");
   const [filterExtra, setFilterExtra] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [refreshState, setRefreshState] = useState("idle"); // idle | refreshing | done
+  const [refreshState, setRefreshState] = useState("idle");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("deadline");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
-  useEffect(() => { loadJobs(); }, []);
+  useEffect(() => { loadJobs("public"); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function switchTab(tab) {
+    setSectorTab(tab);
+    setFilterCareer("전체");
+    setFilterRegion("전체");
+    setFilterSource("전체");
+    setFilterExtra(null);
+    setSearchQuery("");
+    setShowFavoritesOnly(false);
+    loadJobs(tab);
+  }
 
   async function handleRefresh() {
     if (refreshState === "refreshing") return;
     setRefreshState("refreshing");
     await triggerRefresh();
-    // 서버 갱신 완료까지 ~60초 대기 후 새 데이터 로드
     setTimeout(async () => {
-      await loadJobs();
+      await loadJobs(sectorTab);
       setRefreshState("done");
       setTimeout(() => setRefreshState("idle"), 3000);
     }, 60000);
   }
 
-  async function loadJobs() {
+  async function loadJobs(tab) {
+    const currentTab = tab ?? sectorTab;
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchJobs();
+      const data = currentTab === "large" ? await fetchLargeCompanyJobs() : await fetchJobs();
       setJobs(data.data);
       setLastUpdated(new Date(data.updatedAt).toLocaleTimeString("ko-KR"));
     } catch {
@@ -95,6 +121,12 @@ export default function App() {
   function toggleFavorite(id) {
     setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]);
   }
+
+  const careerFilters = sectorTab === "large"
+    ? ["전체", "신입", "채용형 인턴"]
+    : ["전체", "신입", "경력", "채용형 인턴"];
+
+  const sourcesForTab = sectorTab === "large" ? LARGE_SOURCES : PUBLIC_SOURCES;
 
   const filtered = useMemo(() => {
     let list = jobs.filter(j => getDday(j.deadline) >= 0);
@@ -147,17 +179,29 @@ export default function App() {
     showFavoritesOnly,
   ].filter(Boolean).length;
 
-  const SOURCE_COLORS = { "잡알리오": "#1971C2", "사람인": "#E8590C", "자소설닷컴": "#0D9488", "클린아이": "#7C3AED" };
   const REGION_COLORS = { "서울": "#4338CA", "경기": "#166534", "인천": "#9D174D" };
+  const SOURCE_COLORS_MAP = { "잡알리오": "#1971C2", "사람인": "#E8590C", "자소설닷컴": "#0D9488", "클린아이": "#7C3AED", "캐치": "#0E7A6E" };
 
   const activeChips = [
     filterCareer !== "전체" && { label: filterCareer, onRemove: () => setFilterCareer("전체"), color: "#1F2937" },
     filterRegion !== "전체" && { label: filterRegion, onRemove: () => setFilterRegion("전체"), color: REGION_COLORS[filterRegion] },
-    filterSource !== "전체" && { label: filterSource, onRemove: () => setFilterSource("전체"), color: SOURCE_COLORS[filterSource] },
+    filterSource !== "전체" && { label: filterSource, onRemove: () => setFilterSource("전체"), color: SOURCE_COLORS_MAP[filterSource] },
     filterExtra === "urgent" && { label: "⚡ 마감임박", onRemove: () => setFilterExtra(null), color: "#DC2626" },
     filterExtra === "new" && { label: "✨ 신규", onRemove: () => setFilterExtra(null), color: "#2563EB" },
     showFavoritesOnly && { label: "♥ 관심공고", onRemove: () => setShowFavoritesOnly(false), color: "#DC2626" },
   ].filter(Boolean);
+
+  const SectorTabs = () => (
+    <div style={{ display: "flex", gap: 0, border: "1.5px solid #E5E7EB", borderRadius: 10, overflow: "hidden", width: "fit-content" }}>
+      {[{ key: "public", label: "공공기관" }, { key: "large", label: "대기업" }].map(({ key, label }) => (
+        <button key={key} onClick={() => switchTab(key)} style={{
+          padding: "7px 20px", fontSize: 13, fontWeight: 700, cursor: "pointer", border: "none",
+          background: sectorTab === key ? "#111827" : "#F9FAFB",
+          color: sectorTab === key ? "#fff" : "#6B7280",
+        }}>{label}</button>
+      ))}
+    </div>
+  );
 
   const Filters = ({ sheet = false }) => {
     const wrap = isPC || sheet;
@@ -171,7 +215,6 @@ export default function App() {
     );
     return (
       <div>
-        {/* 검색 — PC + 시트에만 표시 */}
         {wrap && (
           <div style={{ position: "relative", marginBottom: 16 }}>
             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", fontSize: 15 }}>🔍</span>
@@ -192,7 +235,7 @@ export default function App() {
         )}
 
         {label("채용 구분")}
-        {row(CAREER_FILTERS.map(f => (
+        {row(careerFilters.map(f => (
           <FilterChip key={f} label={f} active={filterCareer === f} onClick={() => setFilterCareer(f)} />
         )))}
 
@@ -202,13 +245,7 @@ export default function App() {
         )))}
 
         {label("출처")}
-        {row([
-          { label: "전체", value: "전체", color: "#1F2937" },
-          { label: "잡알리오", value: "잡알리오", color: "#1971C2" },
-          { label: "사람인", value: "사람인", color: "#E8590C" },
-          { label: "자소설닷컴", value: "자소설닷컴", color: "#0D9488" },
-          { label: "클린아이", value: "클린아이", color: "#7C3AED" },
-        ].map(({ label: l, value, color }) => (
+        {row(sourcesForTab.map(({ label: l, value, color }) => (
           <FilterChip key={value} label={l} active={filterSource === value} onClick={() => setFilterSource(value)} activeColor={color} />
         )))}
 
@@ -246,14 +283,14 @@ export default function App() {
   const CardList = () => {
     if (loading) return (
       <div style={{ textAlign: "center", padding: "80px 20px", color: "#9CA3AF" }}>
-        <div style={{ fontSize: 32, marginBottom: 12, animation: "spin 1s linear infinite" }}>⏳</div>
+        <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
         <p style={{ fontSize: 14 }}>공고를 불러오는 중...</p>
       </div>
     );
     if (error) return (
       <div style={{ background: "#fff", borderRadius: 16, padding: "60px 20px", textAlign: "center", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
         <p style={{ fontSize: 14, color: "#DC2626", marginBottom: 16 }}>{error}</p>
-        <button onClick={loadJobs} style={{ padding: "10px 24px", borderRadius: 10, background: "#1F2937", color: "#fff", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>다시 시도</button>
+        <button onClick={() => loadJobs(sectorTab)} style={{ padding: "10px 24px", borderRadius: 10, background: "#1F2937", color: "#fff", border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500 }}>다시 시도</button>
       </div>
     );
     if (filtered.length === 0) return <EmptyState icon="🔍" message="조건에 맞는 공고가 없습니다" />;
@@ -291,19 +328,22 @@ export default function App() {
     </select>
   );
 
+  const headerTitle = sectorTab === "large" ? "수도권 대기업 채용" : "수도권 공공기관 문과직 채용";
+  const headerSub = sectorTab === "large" ? "신입·채용형 인턴 (경력·계약직 제외)" : "서울 · 경기 · 인천 / 경영 · 행정 · 사무 중심";
+
   return (
     <div style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'Pretendard', 'Apple SD Gothic Neo', sans-serif", background: "#F7F6F3", minHeight: "100vh" }}>
 
       {/* ── PC ── */}
       {isPC && (
         <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 28px" }}>
-          {/* 헤더 */}
           <div style={{ padding: "28px 0 24px", borderBottom: "1px solid #E5E7EB", marginBottom: 28, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, margin: "0 0 4px", color: "#111827", letterSpacing: "-0.5px" }}>
-                수도권 공공기관 문과직 채용
+              <SectorTabs />
+              <h1 style={{ fontSize: 22, fontWeight: 800, margin: "12px 0 4px", color: "#111827", letterSpacing: "-0.5px" }}>
+                {headerTitle}
               </h1>
-              <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0 }}>서울 · 경기 · 인천 / 경영 · 행정 · 사무 중심</p>
+              <p style={{ fontSize: 13, color: "#9CA3AF", margin: 0 }}>{headerSub}</p>
             </div>
             <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
               <StatsRow />
@@ -319,17 +359,9 @@ export default function App() {
           </div>
 
           <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-            {/* 사이드바 */}
-            <div style={{
-              width: 230, flexShrink: 0,
-              background: "#fff", borderRadius: 16,
-              padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-              position: "sticky", top: 24,
-            }}>
+            <div style={{ width: 230, flexShrink: 0, background: "#fff", borderRadius: 16, padding: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06)", position: "sticky", top: 24 }}>
               <Filters />
             </div>
-
-            {/* 메인 */}
             <div style={{ flex: 1, minWidth: 0, paddingBottom: 48 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <span style={{ fontSize: 14, color: "#6B7280" }}>
@@ -344,7 +376,7 @@ export default function App() {
 
           <div style={{ textAlign: "center", padding: "24px 0 48px" }}>
             <p style={{ fontSize: 11, color: "#D1D5DB", lineHeight: 1.8, margin: 0 }}>
-              공공기관/공기업 문과직 채용공고 개인 큐레이션 도구입니다. 지원 전 반드시 원문 공고를 확인하세요.
+              공공기관/공기업·대기업 채용공고 개인 큐레이션 도구입니다. 지원 전 반드시 원문 공고를 확인하세요.
             </p>
           </div>
         </div>
@@ -353,13 +385,12 @@ export default function App() {
       {/* ── 모바일/태블릿 ── */}
       {!isPC && (
         <div style={{ paddingBottom: 60 }}>
-          {/* 슬림 헤더 */}
           <div style={{ background: "#fff", borderBottom: "1px solid #F3F4F6", position: "sticky", top: 0, zIndex: 50 }}>
-            {/* 타이틀 + 버튼 */}
-            <div style={{ padding: "14px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ padding: "12px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <h1 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 2px", color: "#111827", letterSpacing: "-0.3px" }}>
-                  수도권 공공기관 문과직
+                <SectorTabs />
+                <h1 style={{ fontSize: 16, fontWeight: 800, margin: "8px 0 2px", color: "#111827", letterSpacing: "-0.3px" }}>
+                  {headerTitle}
                 </h1>
                 <StatsRow />
               </div>
@@ -371,9 +402,9 @@ export default function App() {
                   border: "1.5px solid " + (showFavoritesOnly ? "#FECACA" : "#E5E7EB"),
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  {showFavoritesOnly ? "♥" : "♡"}
+                  {showFavoritesOnly ? "❤" : "♡"}
                 </button>
-                <button onClick={handleRefresh} disabled={refreshState === "refreshing"} title="데이터 업데이트" style={{
+                <button onClick={handleRefresh} disabled={refreshState === "refreshing"} style={{
                   width: 34, height: 34, borderRadius: 10, fontSize: 15,
                   cursor: refreshState === "refreshing" ? "not-allowed" : "pointer",
                   background: refreshState === "done" ? "#ECFDF5" : "#F3F4F6",
@@ -386,7 +417,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 검색 + 필터 버튼 */}
             <div style={{ padding: "0 16px 10px", display: "flex", gap: 8, alignItems: "center" }}>
               <div style={{ position: "relative", flex: 1 }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9CA3AF", fontSize: 13 }}>🔍</span>
@@ -419,7 +449,6 @@ export default function App() {
               </button>
             </div>
 
-            {/* 활성 필터 칩 */}
             {activeChips.length > 0 && (
               <div style={{ display: "flex", gap: 6, padding: "0 16px 10px", overflowX: "auto" }}>
                 {activeChips.map(chip => (
@@ -436,7 +465,6 @@ export default function App() {
             )}
           </div>
 
-          {/* 결과 수 + 정렬 */}
           <div style={{ padding: "12px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 13, color: "#6B7280" }}>
               <strong style={{ color: "#111827" }}>{grouped.length}</strong>개 기관 ·{" "}
@@ -445,32 +473,27 @@ export default function App() {
             <SortSelect />
           </div>
 
-          {/* 카드 목록 */}
           <div style={{ padding: "0 16px" }}>
             <CardList />
           </div>
 
           <div style={{ padding: "28px 20px 0", textAlign: "center" }}>
             <p style={{ fontSize: 11, color: "#D1D5DB", lineHeight: 1.8, margin: 0 }}>
-              공공기관/공기업 문과직 채용공고 개인 큐레이션 도구입니다.<br />지원 전 반드시 원문 공고를 확인하세요.
+              공공기관/공기업·대기업 채용공고 개인 큐레이션 도구입니다.<br />지원 전 반드시 원문 공고를 확인하세요.
             </p>
           </div>
         </div>
       )}
 
-      {/* 모바일 바텀시트 필터 */}
       {!isPC && filterOpen && (
         <>
-          <div onClick={() => setFilterOpen(false)} style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200,
-          }} />
+          <div onClick={() => setFilterOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 200 }} />
           <div style={{
             position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 201,
             background: "#fff", borderRadius: "20px 20px 0 0",
             maxHeight: "88vh", overflowY: "auto",
             boxShadow: "0 -4px 24px rgba(0,0,0,0.12)",
           }}>
-            {/* 핸들 + 헤더 */}
             <div style={{ padding: "12px 20px 0", position: "sticky", top: 0, background: "#fff", borderBottom: "1px solid #F3F4F6", zIndex: 1 }}>
               <div style={{ width: 36, height: 4, background: "#E5E7EB", borderRadius: 2, margin: "0 auto 14px" }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 12 }}>
@@ -483,13 +506,9 @@ export default function App() {
                 </button>
               </div>
             </div>
-
-            {/* 필터 내용 */}
             <div style={{ padding: "16px 20px 0" }}>
               <Filters sheet />
             </div>
-
-            {/* 적용 버튼 */}
             <div style={{ padding: "16px 20px 32px", position: "sticky", bottom: 0, background: "#fff", borderTop: "1px solid #F3F4F6" }}>
               <button onClick={() => setFilterOpen(false)} style={{
                 width: "100%", padding: "14px", borderRadius: 12, border: "none", cursor: "pointer",

@@ -20,24 +20,34 @@ function FavBtn({ isFavorite, onClick, size = 17 }) {
     <button onClick={e => { e.stopPropagation(); onClick(); }} style={{
       background: "none", border: "none", cursor: "pointer", padding: 2,
       fontSize: size, color: isFavorite ? "#EF4444" : "#D1D5DB", lineHeight: 1, flexShrink: 0,
+      WebkitTextStroke: isFavorite ? "0px" : "1px #D1D5DB",
     }}>
-      {isFavorite ? "♥" : "♡"}
+      {isFavorite ? "❤" : "♡"}
     </button>
   );
 }
 
-function SourceTag({ source }) {
-  const config = {
-    "사람인":    { color: "#E8590C", bg: "#FFF4EE" },
-    "잡알리오":  { color: "#1971C2", bg: "#E7F5FF" },
-    "자소설닷컴": { color: "#0D9488", bg: "#F0FDFA" },
-    "클린아이":  { color: "#7C3AED", bg: "#F5F3FF" },
-  };
-  const { color, bg } = config[source] || { color: "#6B7280", bg: "#F3F4F6" };
+const SOURCE_CONFIG = {
+  "사람인":    { color: "#E8590C", bg: "#FFF4EE" },
+  "잡알리오":  { color: "#1971C2", bg: "#E7F5FF" },
+  "자소설닷컴": { color: "#0D9488", bg: "#F0FDFA" },
+  "클린아이":  { color: "#7C3AED", bg: "#F5F3FF" },
+  "캐치":      { color: "#0E7A6E", bg: "#DDF5F2" },
+};
+
+function SourceTag({ source, duplicates }) {
+  const all = duplicates?.length ? [source, ...duplicates] : [source];
   return (
-    <span style={{ fontSize: 10, fontWeight: 600, color, background: bg, padding: "1px 6px", borderRadius: 4 }}>
-      {source}
-    </span>
+    <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+      {all.map(s => {
+        const { color, bg } = SOURCE_CONFIG[s] || { color: "#6B7280", bg: "#F3F4F6" };
+        return (
+          <span key={s} style={{ fontSize: 10, fontWeight: 600, color, background: bg, padding: "1px 6px", borderRadius: 4 }}>
+            {s}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -61,7 +71,7 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>{job.organizationType}</span>
           <span style={{ color: "#E5E7EB", fontSize: 10 }}>·</span>
-          <SourceTag source={job.source} />
+          <SourceTag source={job.source} duplicates={job.duplicateSources} />
           {job.isNew && !isClosed && (
             <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "1px 6px", borderRadius: 4 }}>
               NEW
@@ -120,7 +130,7 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
           <span style={{ fontSize: 11, color: "#9CA3AF" }}>{rep.organizationType}</span>
           <span style={{ color: "#E5E7EB", fontSize: 10 }}>·</span>
-          <SourceTag source={rep.source} />
+          <SourceTag source={rep.source} duplicates={rep.duplicateSources} />
           {hasNew && (
             <span style={{ fontSize: 10, fontWeight: 700, color: "#2563EB", background: "#EFF6FF", padding: "1px 6px", borderRadius: 4 }}>
               NEW
@@ -140,7 +150,7 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
         </div>
       </div>
 
-      {/* 공고 목록 — 단일카드 양식과 동일하게 */}
+      {/* 공고 목록 */}
       {group.map(job => {
         const dday = getDdayLabel(job.deadline);
         const isClosed = dday.type === "closed";
@@ -156,7 +166,6 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
               opacity: isClosed ? 0.5 : 1,
             }}
           >
-            {/* 공고 제목 + D-day + 즐겨찾기 */}
             <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
               <p style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, color: "#374151", margin: 0, lineHeight: 1.5 }}>
                 {job.title}
@@ -166,7 +175,6 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
                 <FavBtn isFavorite={isFavorite} onClick={() => onToggleFavorite(job.id)} size={15} />
               </div>
             </div>
-            {/* 뱃지 + 마감일 */}
             <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
               {job.isConversionIntern ? <Badge variant="intern">채용형 인턴</Badge>
                 : job.careerType === "신입" ? <Badge variant="newbie">신입</Badge>
@@ -187,7 +195,6 @@ export function CompanyCard({ group, onSelect, onToggleFavorite, favorites }) {
           </div>
         );
       })}
-
     </div>
   );
 }
